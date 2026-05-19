@@ -1,0 +1,126 @@
+# =====================================================
+# CONTROLE FINANCEIRO COM LOGIN
+# Projeto simples para estudo em Python
+# =====================================================
+
+from getpass import getpass
+
+# =========================
+# DADOS DE LOGIN
+# =========================
+USUARIO = "admin"
+SENHA = "1234"
+
+# =========================
+# FUNÇÃO DE LOGIN
+# =========================
+def fazer_login():
+    tentativas = 3
+
+    while tentativas > 0:
+        print("\n========== LOGIN ==========")
+
+        usuario = input("Usuário: ")
+        senha = getpass("Senha: ")
+
+        if usuario == USUARIO and senha == SENHA:
+            print("\n✅ Login realizado com sucesso!")
+            return True
+        else:
+            tentativas -= 1
+            print("\n❌ Usuário ou senha incorretos.")
+            print(f"Tentativas restantes: {tentativas}")
+
+    print("\n⛔ Acesso bloqueado.")
+    return False
+
+
+# =========================
+# FUNÇÃO MOSTRAR MENU
+# =========================
+def mostrar_menu():
+    print("\n==============================")
+    print("   CONTROLE FINANCEIRO")
+    print("==============================")
+    print("1 - Adicionar receita")
+    print("2 - Adicionar despesa")
+    print("3 - Ver saldo")
+    print("4 - Ver histórico")
+    print("5 - Sair")
+
+
+# =========================
+# SISTEMA FINANCEIRO
+# =========================
+def sistema_financeiro():
+
+    saldo = 0
+    historico = []
+
+    while True:
+        mostrar_menu()
+
+        opcao = input("\nEscolha uma opção: ")
+
+        # =========================
+        # ADICIONAR RECEITA
+        # =========================
+        if opcao == "1":
+            valor = float(input("Valor da receita: R$ "))
+
+            saldo += valor
+
+            historico.append(f"Receita: +R$ {valor:.2f}")
+
+            print("✅ Receita adicionada com sucesso!")
+
+        # =========================
+        # ADICIONAR DESPESA
+        # =========================
+        elif opcao == "2":
+            valor = float(input("Valor da despesa: R$ "))
+
+            saldo -= valor
+
+            historico.append(f"Despesa: -R$ {valor:.2f}")
+
+            print("✅ Despesa adicionada com sucesso!")
+
+        # =========================
+        # VER SALDO
+        # =========================
+        elif opcao == "3":
+            print(f"\n💰 Saldo atual: R$ {saldo:.2f}")
+
+        # =========================
+        # VER HISTÓRICO
+        # =========================
+        elif opcao == "4":
+
+            print("\n========= HISTÓRICO =========")
+
+            if len(historico) == 0:
+                print("Nenhuma movimentação encontrada.")
+            else:
+                for item in historico:
+                    print(item)
+
+        # =========================
+        # SAIR
+        # =========================
+        elif opcao == "5":
+            print("\n👋 Encerrando sistema...")
+            break
+
+        # =========================
+        # OPÇÃO INVÁLIDA
+        # =========================
+        else:
+            print("\n⚠️ Opção inválida.")
+
+
+# =========================
+# PROGRAMA PRINCIPAL
+# =========================
+if fazer_login():
+    sistema_financeiro()
