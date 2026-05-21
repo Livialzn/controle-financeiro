@@ -1,126 +1,293 @@
-# =====================================================
-# CONTROLE FINANCEIRO COM LOGIN
-# Projeto simples para estudo em Python
-# =====================================================
-
 from getpass import getpass
 
-# =========================
-# DADOS DE LOGIN
-# =========================
-USUARIO = "admin"
-SENHA = "1234"
+usuarios = []
+
+receitas = []
+despesas = []
+planejamentos = []
+
 
 # =========================
-# FUNÇÃO DE LOGIN
+# LOGIN E CADASTRO
 # =========================
+
+def cadastrar_usuario():
+
+    print("\n===== CADASTRO =====")
+
+    usuario = input("Novo usuário: ")
+    senha = getpass("Nova senha: ")
+
+    for user in usuarios:
+        if user["usuario"] == usuario:
+            print("\n⚠️ Usuário já existe.")
+            return
+
+    usuarios.append({
+        "usuario": usuario,
+        "senha": senha
+    })
+
+    print("\n✅ Cadastro realizado com sucesso!")
+
+
 def fazer_login():
-    tentativas = 3
 
-    while tentativas > 0:
-        print("\n========== LOGIN ==========")
+    print("\n===== LOGIN =====")
 
-        usuario = input("Usuário: ")
-        senha = getpass("Senha: ")
+    usuario = input("Usuário: ")
+    senha = getpass("Senha: ")
 
-        if usuario == USUARIO and senha == SENHA:
+    for user in usuarios:
+
+        if user["usuario"] == usuario and user["senha"] == senha:
             print("\n✅ Login realizado com sucesso!")
             return True
-        else:
-            tentativas -= 1
-            print("\n❌ Usuário ou senha incorretos.")
-            print(f"Tentativas restantes: {tentativas}")
 
-    print("\n⛔ Acesso bloqueado.")
+    print("\n❌ Usuário ou senha incorretos.")
     return False
 
 
 # =========================
-# FUNÇÃO MOSTRAR MENU
+# RECEITAS
 # =========================
-def mostrar_menu():
-    print("\n==============================")
-    print("   CONTROLE FINANCEIRO")
-    print("==============================")
+
+def adicionar_receita():
+
+    print("\n===== RECEITA =====")
+
+    tipo = input("Tipo da receita: ")
+    valor = float(input("Valor: R$ "))
+    data = input("Data: ")
+
+    receitas.append({
+        "tipo": tipo,
+        "valor": valor,
+        "data": data
+    })
+
+    print("\n✅ Receita cadastrada!")
+
+
+# =========================
+# DESPESAS
+# =========================
+
+def adicionar_despesa():
+
+    print("\n===== DESPESA =====")
+
+    tipo = input("Tipo (fixa/variável): ")
+    categoria = input("Categoria: ")
+    valor = float(input("Valor: R$ "))
+
+    despesas.append({
+        "tipo": tipo,
+        "categoria": categoria,
+        "valor": valor
+    })
+
+    print("\n✅ Despesa cadastrada!")
+
+
+# =========================
+# PLANEJAMENTO
+# =========================
+
+def criar_planejamento():
+
+    print("\n===== PLANEJAMENTO =====")
+
+    meta = input("Meta financeira: ")
+    prazo = input("Prazo: ")
+    valor_objetivo = float(input("Valor objetivo: R$ "))
+
+    planejamentos.append({
+        "meta": meta,
+        "prazo": prazo,
+        "valor_objetivo": valor_objetivo
+    })
+
+    print("\n✅ Planejamento criado!")
+
+
+# =========================
+# SALDO
+# =========================
+
+def calcular_saldo():
+
+    total_receitas = 0
+    total_despesas = 0
+
+    for receita in receitas:
+        total_receitas += receita["valor"]
+
+    for despesa in despesas:
+        total_despesas += despesa["valor"]
+
+    saldo = total_receitas - total_despesas
+
+    return saldo
+
+
+def ver_saldo():
+
+    saldo = calcular_saldo()
+
+    print(f"\n💰 Saldo atual: R$ {saldo:.2f}")
+
+
+# =========================
+# ANÁLISE
+# =========================
+
+def analisar_financas():
+
+    saldo = calcular_saldo()
+
+    print("\n===== ANÁLISE =====")
+
+    if saldo > 0:
+        print("✅ Situação financeira positiva.")
+        print("💵 Você pode investir ou guardar dinheiro.")
+
+    elif saldo == 0:
+        print("⚠️ Saldo zerado.")
+
+    else:
+        print("❌ Situação financeira negativa.")
+        print("⚠️ Necessário cortar gastos.")
+
+
+# =========================
+# HISTÓRICO
+# =========================
+
+def ver_historico():
+
+    print("\n===== RECEITAS =====")
+
+    if len(receitas) == 0:
+        print("Nenhuma receita cadastrada.")
+
+    else:
+        for receita in receitas:
+            print(receita)
+
+    print("\n===== DESPESAS =====")
+
+    if len(despesas) == 0:
+        print("Nenhuma despesa cadastrada.")
+
+    else:
+        for despesa in despesas:
+            print(despesa)
+
+
+# =========================
+# ACOMPANHAMENTO
+# =========================
+
+def acompanhamento_mensal():
+
+    saldo = calcular_saldo()
+
+    print("\n===== ACOMPANHAMENTO =====")
+
+    print(f"Saldo mensal: R$ {saldo:.2f}")
+
+    if saldo < 0:
+        print("⚠️ Ajuste necessário no planejamento.")
+
+    else:
+        print("✅ Planejamento funcionando corretamente.")
+
+
+# =========================
+# MENU
+# =========================
+
+def menu():
+
+    print("\n========================")
+    print(" CONTROLE FINANCEIRO ")
+    print("========================")
     print("1 - Adicionar receita")
     print("2 - Adicionar despesa")
-    print("3 - Ver saldo")
-    print("4 - Ver histórico")
-    print("5 - Sair")
+    print("3 - Criar planejamento")
+    print("4 - Ver saldo")
+    print("5 - Ver histórico")
+    print("6 - Análise financeira")
+    print("7 - Acompanhamento mensal")
+    print("8 - Sair")
 
 
 # =========================
-# SISTEMA FINANCEIRO
+# SISTEMA
 # =========================
-def sistema_financeiro():
 
-    saldo = 0
-    historico = []
+def sistema():
 
     while True:
-        mostrar_menu()
+
+        menu()
 
         opcao = input("\nEscolha uma opção: ")
 
-        # =========================
-        # ADICIONAR RECEITA
-        # =========================
         if opcao == "1":
-            valor = float(input("Valor da receita: R$ "))
+            adicionar_receita()
 
-            saldo += valor
-
-            historico.append(f"Receita: +R$ {valor:.2f}")
-
-            print("✅ Receita adicionada com sucesso!")
-
-        # =========================
-        # ADICIONAR DESPESA
-        # =========================
         elif opcao == "2":
-            valor = float(input("Valor da despesa: R$ "))
+            adicionar_despesa()
 
-            saldo -= valor
-
-            historico.append(f"Despesa: -R$ {valor:.2f}")
-
-            print("✅ Despesa adicionada com sucesso!")
-
-        # =========================
-        # VER SALDO
-        # =========================
         elif opcao == "3":
-            print(f"\n💰 Saldo atual: R$ {saldo:.2f}")
+            criar_planejamento()
 
-        # =========================
-        # VER HISTÓRICO
-        # =========================
         elif opcao == "4":
+            ver_saldo()
 
-            print("\n========= HISTÓRICO =========")
-
-            if len(historico) == 0:
-                print("Nenhuma movimentação encontrada.")
-            else:
-                for item in historico:
-                    print(item)
-
-        # =========================
-        # SAIR
-        # =========================
         elif opcao == "5":
+            ver_historico()
+
+        elif opcao == "6":
+            analisar_financas()
+
+        elif opcao == "7":
+            acompanhamento_mensal()
+
+        elif opcao == "8":
             print("\n👋 Encerrando sistema...")
             break
 
-        # =========================
-        # OPÇÃO INVÁLIDA
-        # =========================
         else:
             print("\n⚠️ Opção inválida.")
 
 
 # =========================
-# PROGRAMA PRINCIPAL
+# INÍCIO
 # =========================
-if fazer_login():
-    sistema_financeiro()
+
+while True:
+
+    print("\n===== CONTROLE FINANCEIRO =====")
+    print("1 - Cadastrar")
+    print("2 - Login")
+    print("3 - Sair")
+
+    escolha = input("\nEscolha: ")
+
+    if escolha == "1":
+        cadastrar_usuario()
+
+    elif escolha == "2":
+
+        if fazer_login():
+            sistema()
+
+    elif escolha == "3":
+        print("\n👋 Sistema encerrado.")
+        break
+
+    else:
+        print("\n⚠️ Opção inválida.")
