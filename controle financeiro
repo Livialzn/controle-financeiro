@@ -1,7 +1,168 @@
-from getpass import getpass
+# =========================
+# CONTROLE FINANCEIRO
+# =========================
 
-usuarios = []
+receitas = []
+despesas = []
+planejamentos = []
 
+proximo_id_receita = 1
+proximo_id_despesa = 1
+
+
+# =========================
+# RECEITAS
+# =========================
+
+def adicionar_receita():
+    global proximo_id_receita
+
+    print("\n===== RECEITA =====")
+
+    tipo = input("Tipo (salário/extra): ")
+    valor = ler_numero("Valor: R$ ")
+    data = input("Data (ex: 23/05/2025): ")
+
+    receitas.append({
+        "id_receita": proximo_id_receita,
+        "tipo": tipo,
+        "valor": valor,
+        "data": data
+    })
+
+    proximo_id_receita += 1
+    print("\n✅ Receita cadastrada!")
+
+
+# =========================
+# DESPESAS
+# =========================
+
+def adicionar_despesa():
+    global proximo_id_despesa
+
+    print("\n===== DESPESA =====")
+
+    tipo = input("Tipo (fixa/variável): ")
+    valor = ler_numero("Valor: R$ ")
+    categoria = input("Categoria: ")
+
+    despesas.append({
+        "id_despesa": proximo_id_despesa,
+        "tipo": tipo,
+        "valor": valor,
+        "categoria": categoria
+    })
+
+    proximo_id_despesa += 1
+    print("\n✅ Despesa cadastrada!")
+
+
+# =========================
+# PLANEJAMENTO
+# =========================
+
+def criar_planejamento():
+    print("\n===== PLANEJAMENTO =====")
+
+    meta = input("Meta financeira: ")
+    prazo = input("Prazo: ")
+    valor_objetivo = ler_numero("Valor objetivo: R$ ")
+
+    planejamentos.append({
+        "meta": meta,
+        "prazo": prazo,
+        "valor_objetivo": valor_objetivo
+    })
+
+    print("\n✅ Planejamento criado!")
+
+
+# =========================
+# SALDO
+# =========================
+
+def calcular_saldo():
+    total_receitas = sum(r["valor"] for r in receitas)
+    total_despesas = sum(d["valor"] for d in despesas)
+    return total_receitas - total_despesas
+
+
+def ver_saldo():
+    saldo = calcular_saldo()
+    print(f"\n💰 Saldo total: R$ {saldo:.2f}")
+    return saldo
+
+
+# =========================
+# ANÁLISE (segue o fluxo do diagrama)
+# =========================
+
+def analisar_financas():
+    print("\n===== ANÁLISE FINANCEIRA =====")
+
+    saldo = calcular_saldo()
+    print(f"Saldo atual: R$ {saldo:.2f}")
+
+    if saldo >= 0:
+        print("\n✅ Saldo positivo!")
+        print("💰 Recomendação: Guardar dinheiro")
+        print("📈 Recomendação: Investir o excedente")
+    else:
+        print("\n❌ Saldo negativo!")
+        print("✂️  Recomendação: Cortar gastos")
+        print("💼 Recomendação: Aumentar renda")
+
+    acompanhamento_mensal(saldo)
+
+
+# =========================
+# ACOMPANHAMENTO MENSAL
+# =========================
+
+def acompanhamento_mensal(saldo=None):
+    if saldo is None:
+        saldo = calcular_saldo()
+
+    print("\n===== ACOMPANHAMENTO MENSAL =====")
+    print(f"Saldo mensal: R$ {saldo:.2f}")
+    print("📋 Ajuste do planejamento realizado.")
+    print("\n🏁 FIM do ciclo de acompanhamento.")
+
+
+# =========================
+# HISTÓRICO
+# =========================
+
+def ver_historico():
+    print("\n===== RECEITAS =====")
+
+    if not receitas:
+        print("Nenhuma receita cadastrada.")
+    else:
+        for r in receitas:
+            print(f"ID {r['id_receita']} | {r['tipo']} | R$ {r['valor']:.2f} | {r['data']}")
+
+    print("\n===== DESPESAS =====")
+
+    if not despesas:
+        print("Nenhuma despesa cadastrada.")
+    else:
+        for d in despesas:
+            print(f"ID {d['id_despesa']} | {d['categoria']} ({d['tipo']}) | R$ {d['valor']:.2f}")
+
+    print("\n===== PLANEJAMENTOS =====")
+
+    if not planejamentos:
+        print("Nenhum planejamento cadastrado.")
+    else:
+        for p in planejamentos:
+            print(f"Meta: {p['meta']} | Prazo: {p['prazo']} | Objetivo: R$ {p['valor_objetivo']:.2f}")
+
+
+# =========================
+# AUXILIAR - LEITURA SEGURA
+# =========================
 
 def ler_numero(mensagem):
     while True:
@@ -11,155 +172,16 @@ def ler_numero(mensagem):
             print("⚠️ Digite um número válido! Ex: 150.50")
 
 
-def cadastrar_usuario():
-    print("\n===== CADASTRO =====")
-
-    usuario = input("Novo usuário: ")
-    senha = getpass("Nova senha: ")
-
-    for user in usuarios:
-        if user["usuario"] == usuario:
-            print("\n⚠️ Usuário já existe.")
-            return
-
-    usuarios.append({
-        "usuario": usuario,
-        "senha": senha,
-        "receitas": [],
-        "despesas": [],
-        "planejamentos": []
-    })
-
-    print("\n✅ Cadastro realizado com sucesso!")
-
-
-def fazer_login():
-    print("\n===== LOGIN =====")
-
-    usuario = input("Usuário: ")
-    senha = getpass("Senha: ")
-
-    for user in usuarios:
-        if user["usuario"] == usuario and user["senha"] == senha:
-            print(f"\n✅ Bem-vindo(a), {usuario}!")
-            return user
-
-    print("\n❌ Usuário ou senha incorretos.")
-    return None
-
-
-def adicionar_receita(usuario_logado):
-    print("\n===== RECEITA =====")
-
-    tipo = input("Tipo da receita: ")
-    valor = ler_numero("Valor: R$ ")
-    data = input("Data (ex: 23/05/2025): ")
-
-    usuario_logado["receitas"].append({
-        "tipo": tipo,
-        "valor": valor,
-        "data": data
-    })
-
-    print("\n✅ Receita cadastrada!")
-
-
-def adicionar_despesa(usuario_logado):
-    print("\n===== DESPESA =====")
-
-    tipo = input("Tipo (fixa/variável): ")
-    categoria = input("Categoria: ")
-    valor = ler_numero("Valor: R$ ")
-    data = input("Data (ex: 23/05/2025): ")
-
-    usuario_logado["despesas"].append({
-        "tipo": tipo,
-        "categoria": categoria,
-        "valor": valor,
-        "data": data
-    })
-
-    print("\n✅ Despesa cadastrada!")
-
-
-def criar_planejamento(usuario_logado):
-    print("\n===== PLANEJAMENTO =====")
-
-    meta = input("Meta financeira: ")
-    prazo = input("Prazo: ")
-    valor_objetivo = ler_numero("Valor objetivo: R$ ")
-
-    usuario_logado["planejamentos"].append({
-        "meta": meta,
-        "prazo": prazo,
-        "valor_objetivo": valor_objetivo
-    })
-
-    print("\n✅ Planejamento criado!")
-
-
-def calcular_saldo(usuario_logado):
-    total_receitas = sum(r["valor"] for r in usuario_logado["receitas"])
-    total_despesas = sum(d["valor"] for d in usuario_logado["despesas"])
-    return total_receitas - total_despesas
-
-
-def ver_saldo(usuario_logado):
-    saldo = calcular_saldo(usuario_logado)
-    print(f"\n💰 Saldo atual: R$ {saldo:.2f}")
-
-
-def analisar_financas(usuario_logado):
-    saldo = calcular_saldo(usuario_logado)
-
-    print("\n===== ANÁLISE =====")
-
-    if saldo > 0:
-        print("✅ Situação financeira positiva.")
-        print("💵 Você pode investir ou guardar dinheiro.")
-    elif saldo == 0:
-        print("⚠️ Saldo zerado.")
-    else:
-        print("❌ Situação financeira negativa.")
-        print("⚠️ Necessário cortar gastos.")
-
-
-def ver_historico(usuario_logado):
-    print("\n===== RECEITAS =====")
-
-    if not usuario_logado["receitas"]:
-        print("Nenhuma receita cadastrada.")
-    else:
-        for i, receita in enumerate(usuario_logado["receitas"], 1):
-            print(f"{i}. {receita['tipo']} | R$ {receita['valor']:.2f} | {receita['data']}")
-
-    print("\n===== DESPESAS =====")
-
-    if not usuario_logado["despesas"]:
-        print("Nenhuma despesa cadastrada.")
-    else:
-        for i, despesa in enumerate(usuario_logado["despesas"], 1):
-            print(f"{i}. {despesa['categoria']} ({despesa['tipo']}) | R$ {despesa['valor']:.2f} | {despesa['data']}")
-
-
-def acompanhamento_mensal(usuario_logado):
-    saldo = calcular_saldo(usuario_logado)
-
-    print("\n===== ACOMPANHAMENTO =====")
-    print(f"Saldo mensal: R$ {saldo:.2f}")
-
-    if saldo < 0:
-        print("⚠️ Ajuste necessário no planejamento.")
-    else:
-        print("✅ Planejamento funcionando corretamente.")
-
+# =========================
+# MENU
+# =========================
 
 def menu():
     print("\n========================")
     print("  CONTROLE FINANCEIRO  ")
     print("========================")
-    print("1 - Adicionar receita")
-    print("2 - Adicionar despesa")
+    print("1 - Registrar receita")
+    print("2 - Registrar despesa")
     print("3 - Criar planejamento")
     print("4 - Ver saldo")
     print("5 - Ver histórico")
@@ -168,48 +190,31 @@ def menu():
     print("8 - Sair")
 
 
-def sistema(usuario_logado):
-    while True:
-        menu()
-        opcao = input("\nEscolha uma opção: ")
-
-        if opcao == "1":
-            adicionar_receita(usuario_logado)
-        elif opcao == "2":
-            adicionar_despesa(usuario_logado)
-        elif opcao == "3":
-            criar_planejamento(usuario_logado)
-        elif opcao == "4":
-            ver_saldo(usuario_logado)
-        elif opcao == "5":
-            ver_historico(usuario_logado)
-        elif opcao == "6":
-            analisar_financas(usuario_logado)
-        elif opcao == "7":
-            acompanhamento_mensal(usuario_logado)
-        elif opcao == "8":
-            print("\n👋 Encerrando sistema...")
-            break
-        else:
-            print("\n⚠️ Opção inválida.")
-
+# =========================
+# INÍCIO
+# =========================
 
 while True:
-    print("\n===== CONTROLE FINANCEIRO =====")
-    print("1 - Cadastrar")
-    print("2 - Login")
-    print("3 - Sair")
+    menu()
 
-    escolha = input("\nEscolha: ")
+    opcao = input("\nEscolha uma opção: ")
 
-    if escolha == "1":
-        cadastrar_usuario()
-    elif escolha == "2":
-        usuario_logado = fazer_login()
-        if usuario_logado:
-            sistema(usuario_logado)
-    elif escolha == "3":
-        print("\n👋 Sistema encerrado.")
+    if opcao == "1":
+        adicionar_receita()
+    elif opcao == "2":
+        adicionar_despesa()
+    elif opcao == "3":
+        criar_planejamento()
+    elif opcao == "4":
+        ver_saldo()
+    elif opcao == "5":
+        ver_historico()
+    elif opcao == "6":
+        analisar_financas()
+    elif opcao == "7":
+        acompanhamento_mensal()
+    elif opcao == "8":
+        print("\n👋 Encerrando sistema...")
         break
     else:
         print("\n⚠️ Opção inválida.")
