@@ -1,91 +1,62 @@
-# =========================
-# CONTROLE FINANCEIRO
-# =========================
 
-receitas = []
-despesas = []
-planejamentos = []
+!pip install supabase
 
-proximo_id_receita = 1
-proximo_id_despesa = 1
+from supabase import create_client
 
+SUPABASE_URL = "https://ahsrukaodswcdigwynhm.supabase.co"
+SUPABASE_KEY = "sb_publishable_HY16cUliwRQLziip5SuCjw_kHXJILp_"
 
-# =========================
-# RECEITAS
-# =========================
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
 
 def adicionar_receita():
-    global proximo_id_receita
-
     print("\n===== RECEITA =====")
-
     tipo = input("Tipo (salário/extra): ")
     valor = ler_numero("Valor: R$ ")
-    data = input("Data (ex: 23/05/2025): ")
+    data_formatada = ler_data("Data (ex: 23/05/2025, 23-05-2025 ou 23052025): ")
 
-    receitas.append({
-        "id_receita": proximo_id_receita,
+    supabase.table("receitas").insert({
         "tipo": tipo,
         "valor": valor,
-        "data": data
-    })
+        "data": data_formatada
+    }).execute()
 
-    proximo_id_receita += 1
     print("\n✅ Receita cadastrada!")
 
 
-# =========================
-# DESPESAS
-# =========================
-
 def adicionar_despesa():
-    global proximo_id_despesa
-
     print("\n===== DESPESA =====")
-
     tipo = input("Tipo (fixa/variável): ")
     valor = ler_numero("Valor: R$ ")
     categoria = input("Categoria: ")
 
-    despesas.append({
-        "id_despesa": proximo_id_despesa,
+    supabase.table("despesas").insert({
         "tipo": tipo,
         "valor": valor,
         "categoria": categoria
-    })
+    }).execute()
 
-    proximo_id_despesa += 1
     print("\n✅ Despesa cadastrada!")
 
 
-# =========================
-# PLANEJAMENTO
-# =========================
-
 def criar_planejamento():
     print("\n===== PLANEJAMENTO =====")
-
     meta = input("Meta financeira: ")
     prazo = input("Prazo: ")
     valor_objetivo = ler_numero("Valor objetivo: R$ ")
 
-    planejamentos.append({
+    supabase.table("planejamentos").insert({
         "meta": meta,
         "prazo": prazo,
         "valor_objetivo": valor_objetivo
-    })
+    }).execute()
 
     print("\n✅ Planejamento criado!")
 
 
-# =========================
-# SALDO
-# =========================
-
 def calcular_saldo():
-    total_receitas = sum(r["valor"] for r in receitas)
-    total_despesas = sum(d["valor"] for d in despesas)
-    return total_receitas - total_despesas
+    res = supabase.table("saldo_usuario").select("saldo").execute()
+    return float(res.data[0]["saldo"]) if res.data else 0.0
 
 
 def ver_saldo():
@@ -94,13 +65,8 @@ def ver_saldo():
     return saldo
 
 
-# =========================
-# ANÁLISE (segue o fluxo do diagrama)
-# =========================
-
 def analisar_financas():
     print("\n===== ANÁLISE FINANCEIRA =====")
-
     saldo = calcular_saldo()
     print(f"Saldo atual: R$ {saldo:.2f}")
 
@@ -116,10 +82,6 @@ def analisar_financas():
     acompanhamento_mensal(saldo)
 
 
-# =========================
-# ACOMPANHAMENTO MENSAL
-# =========================
-
 def acompanhamento_mensal(saldo=None):
     if saldo is None:
         saldo = calcular_saldo()
@@ -130,39 +92,32 @@ def acompanhamento_mensal(saldo=None):
     print("\n🏁 FIM do ciclo de acompanhamento.")
 
 
-# =========================
-# HISTÓRICO
-# =========================
-
 def ver_historico():
-    print("\n===== RECEITAS =====")
+    receitas = supabase.table("receitas").select("*").execute().data
+    despesas = supabase.table("despesas").select("*").execute().data
+    planejamentos = supabase.table("planejamentos").select("*").execute().data
 
+    print("\n===== RECEITAS =====")
     if not receitas:
         print("Nenhuma receita cadastrada.")
     else:
         for r in receitas:
-            print(f"ID {r['id_receita']} | {r['tipo']} | R$ {r['valor']:.2f} | {r['data']}")
+            print(f"{r['tipo']} | R$ {float(r['valor']):.2f} | {r['data']}")
 
     print("\n===== DESPESAS =====")
-
     if not despesas:
         print("Nenhuma despesa cadastrada.")
     else:
         for d in despesas:
-            print(f"ID {d['id_despesa']} | {d['categoria']} ({d['tipo']}) | R$ {d['valor']:.2f}")
+            print(f"{d['categoria']} ({d['tipo']}) | R$ {float(d['valor']):.2f}")
 
     print("\n===== PLANEJAMENTOS =====")
-
     if not planejamentos:
         print("Nenhum planejamento cadastrado.")
     else:
         for p in planejamentos:
-            print(f"Meta: {p['meta']} | Prazo: {p['prazo']} | Objetivo: R$ {p['valor_objetivo']:.2f}")
+            print(f"Meta: {p['meta']} | Prazo: {p['prazo']} | Objetivo: R$ {float(p['valor_objetivo']):.2f}")
 
-
-# =========================
-# AUXILIAR - LEITURA SEGURA
-# =========================
 
 def ler_numero(mensagem):
     while True:
@@ -171,10 +126,26 @@ def ler_numero(mensagem):
         except ValueError:
             print("⚠️ Digite um número válido! Ex: 150.50")
 
+def ler_data(mensagem):
+    while True:
+        data_str = input(mensagem)
+        try:
+            # Try DD/MM/YYYY
+            data_obj = datetime.datetime.strptime(data_str, "%d/%m/%Y")
+            return data_obj.strftime("%Y-%m-%d")
+        except ValueError:
+            try:
+                # Try DD-MM-YYYY
+                data_obj = datetime.datetime.strptime(data_str, "%d-%m-%Y")
+                return data_obj.strftime("%Y-%m-%d")
+            except ValueError:
+                try:
+                    # Try DDMMAAAA
+                    data_obj = datetime.datetime.strptime(data_str, "%d%m%Y")
+                    return data_obj.strftime("%Y-%m-%d")
+                except ValueError:
+                    print("⚠️ Digite uma data válida nos formatos DD/MM/AAAA, DD-MM-AAAA ou DDMMAAAA! Ex: 23/05/2025")
 
-# =========================
-# MENU
-# =========================
 
 def menu():
     print("\n========================")
@@ -190,13 +161,8 @@ def menu():
     print("8 - Sair")
 
 
-# =========================
-# INÍCIO
-# =========================
-
 while True:
     menu()
-
     opcao = input("\nEscolha uma opção: ")
 
     if opcao == "1":
