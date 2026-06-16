@@ -1,13 +1,25 @@
+-- =====================================================
+-- SISTEMA FINANCEIRO PESSOAL - POSTGRESQL
+-- =====================================================
+
 -- ===========================
 -- TABELA DE CATEGORIAS
 -- ===========================
 
 CREATE TABLE IF NOT EXISTS categorias (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    nome VARCHAR(100) NOT NULL UNIQUE,
-    tipo VARCHAR(20) NOT NULL
-        CHECK (tipo IN ('entrada', 'saida')),
-    criado_em TIMESTAMP DEFAULT NOW()
+id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+```
+nome VARCHAR(100) NOT NULL UNIQUE,
+
+tipo VARCHAR(20) NOT NULL
+    CHECK (tipo IN ('entrada', 'saida')),
+
+criado_em TIMESTAMP DEFAULT NOW(),
+
+atualizado_em TIMESTAMP DEFAULT NOW()
+```
+
 );
 
 -- ===========================
@@ -15,24 +27,117 @@ CREATE TABLE IF NOT EXISTS categorias (
 -- ===========================
 
 CREATE TABLE IF NOT EXISTS transacoes (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
-    descricao TEXT NOT NULL,
+```
+descricao TEXT NOT NULL,
 
-    valor NUMERIC(12,2) NOT NULL
-        CHECK (valor > 0),
+valor NUMERIC(12,2) NOT NULL
+    CHECK (valor > 0),
 
-    tipo VARCHAR(20) NOT NULL
-        CHECK (tipo IN ('entrada', 'saida')),
+tipo VARCHAR(20) NOT NULL
+    CHECK (tipo IN ('entrada', 'saida')),
 
-    categoria_id BIGINT REFERENCES categorias(id),
+categoria_id BIGINT,
 
-    data_movimento DATE NOT NULL DEFAULT CURRENT_DATE,
+data_movimento DATE NOT NULL DEFAULT CURRENT_DATE,
 
-    observacao TEXT,
+observacao TEXT,
 
-    criado_em TIMESTAMP DEFAULT NOW()
+criado_em TIMESTAMP DEFAULT NOW(),
+
+atualizado_em TIMESTAMP DEFAULT NOW(),
+
+CONSTRAINT transacoes_categoria_id_fkey
+    FOREIGN KEY (categoria_id)
+    REFERENCES categorias(id)
+    ON DELETE RESTRICT
+```
+
 );
+
+-- ===========================
+-- ÍNDICES
+-- ===========================
+
+CREATE INDEX IF NOT EXISTS idx_transacoes_tipo
+ON transacoes(tipo);
+
+CREATE INDEX IF NOT EXISTS idx_transacoes_data
+ON transacoes(data_movimento);
+
+CREATE INDEX IF NOT EXISTS idx_transacoes_categoria
+ON transacoes(categoria_id);
+
+-- ===========================
+-- TRIGGER DE UPDATED_AT
+-- ===========================
+
+CREATE OR REPLACE FUNCTION atualizar_timestamp()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+NEW.atualizado_em = NOW();
+RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_categorias_updated ON categorias;
+CREATE TRIGGER trg_categorias_updated
+BEFORE UPDATE ON categorias
+FOR EACH ROW
+EXECUTE FUNCTION atualizar_timestamp();
+
+DROP TRIGGER IF EXISTS trg_transacoes_updated ON transacoes;
+CREATE TRIGGER trg_transacoes_updated
+BEFORE UPDATE ON transacoes
+FOR EACH ROW
+EXECUTE FUNCTION atualizar_timestamp();
+
+-- ===========================
+-- VALIDAÇÃO CATEGORIA X TIPO
+-- ===========================
+
+CREATE OR REPLACE FUNCTION validar_categoria_tipo()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+categoria_tipo VARCHAR(20);
+BEGIN
+
+```
+IF NEW.categoria_id IS NULL THEN
+    RETURN NEW;
+END IF;
+
+SELECT tipo
+INTO categoria_tipo
+FROM categorias
+WHERE id = NEW.categoria_id;
+
+IF categoria_tipo IS NOT NULL
+   AND categoria_tipo <> NEW.tipo THEN
+
+    RAISE EXCEPTION
+        'Tipo da categoria (%) diferente do tipo da transação (%)',
+        categoria_tipo,
+        NEW.tipo;
+END IF;
+
+RETURN NEW;
+```
+
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_validar_categoria_tipo ON transacoes;
+CREATE TRIGGER trg_validar_categoria_tipo
+BEFORE INSERT OR UPDATE
+ON transacoes
+FOR EACH ROW
+EXECUTE FUNCTION validar_categoria_tipo();
 
 -- ===========================
 -- CATEGORIAS PADRÃO
@@ -43,6 +148,7 @@ VALUES
 ('Salário', 'entrada'),
 ('Freelance', 'entrada'),
 ('Investimentos', 'entrada'),
+
 ('Alimentação', 'saida'),
 ('Moradia', 'saida'),
 ('Transporte', 'saida'),
@@ -51,48 +157,22 @@ VALUES
 ON CONFLICT (nome) DO NOTHING;
 
 -- ===========================
--- VIEW DE RELATÓRIO
+-- VIEW RELATÓRIO FINANCEIRO
 -- ===========================
 
 CREATE OR REPLACE VIEW vw_relatorio_financeiro AS
 SELECT
-    t.id,
-    t.descricao,
-    t.valor,
-    t.tipo,
-    c.nome AS categoria,
-    t.data_movimento,
-    t.observacao
+t.id,
+t.descricao,
+t.valor,
+t.tipo,
+c.nome AS categoria,
+t.data_movimento,
+t.observacao,
+t.criado_em
 FROM transacoes t
 LEFT JOIN categorias c
 ON c.id = t.categoria_id;
-
--- ===========================
--- FUNÇÃO SALDO TOTAL
--- ===========================
-
-CREATE OR REPLACE FUNCTION saldo_total()
-RETURNS NUMERIC
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    total_entradas NUMERIC := 0;
-    total_saidas NUMERIC := 0;
-BEGIN
-
-    SELECT COALESCE(SUM(valor), 0)
-    INTO total_entradas
-    FROM transacoes
-    WHERE tipo = 'entrada';
-
-    SELECT COALESCE(SUM(valor), 0)
-    INTO total_saidas
-    FROM transacoes
-    WHERE tipo = 'saida';
-
-    RETURN total_entradas - total_saidas;
-END;
-$$;
 
 -- ===========================
 -- VIEW RESUMO GERAL
@@ -100,52 +180,175 @@ $$;
 
 CREATE OR REPLACE VIEW vw_resumo_geral AS
 SELECT
-    COALESCE(
-        SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE 0 END),
-        0
-    ) AS total_entradas,
+COALESCE(
+SUM(
+CASE
+WHEN tipo = 'entrada'
+THEN valor
+ELSE 0
+END
+),
+0
+) AS total_entradas,
 
-    COALESCE(
-        SUM(CASE WHEN tipo = 'saida' THEN valor ELSE 0 END),
-        0
-    ) AS total_saidas,
+```
+COALESCE(
+    SUM(
+        CASE
+            WHEN tipo = 'saida'
+            THEN valor
+            ELSE 0
+        END
+    ),
+    0
+) AS total_saidas,
 
-    COALESCE(
-        SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE 0 END),
-        0
-    ) -
-    COALESCE(
-        SUM(CASE WHEN tipo = 'saida' THEN valor ELSE 0 END),
-        0
-    ) AS saldo_atual
+COALESCE(
+    SUM(
+        CASE
+            WHEN tipo = 'entrada'
+            THEN valor
+            ELSE 0
+        END
+    ),
+    0
+)
+-
+COALESCE(
+    SUM(
+        CASE
+            WHEN tipo = 'saida'
+            THEN valor
+            ELSE 0
+        END
+    ),
+    0
+) AS saldo_atual
+```
 
 FROM transacoes;
+
+-- ===========================
+-- VIEW RESUMO MENSAL
+-- ===========================
+
+CREATE OR REPLACE VIEW vw_resumo_mensal AS
+SELECT
+DATE_TRUNC('month', data_movimento)::DATE AS mes,
+
+```
+SUM(
+    CASE
+        WHEN tipo = 'entrada'
+        THEN valor
+        ELSE 0
+    END
+) AS entradas,
+
+SUM(
+    CASE
+        WHEN tipo = 'saida'
+        THEN valor
+        ELSE 0
+    END
+) AS saidas,
+
+SUM(
+    CASE
+        WHEN tipo = 'entrada'
+        THEN valor
+        ELSE -valor
+    END
+) AS saldo
+```
+
+FROM transacoes
+GROUP BY 1
+ORDER BY 1;
+
+-- ===========================
+-- FUNÇÃO SALDO TOTAL
+-- ===========================
+
+CREATE OR REPLACE FUNCTION saldo_total()
+RETURNS NUMERIC
+LANGUAGE SQL
+AS $$
+SELECT
+COALESCE(
+SUM(
+CASE
+WHEN tipo = 'entrada'
+THEN valor
+ELSE -valor
+END
+),
+0
+)
+FROM transacoes;
+$$;
 
 -- ===========================
 -- EXEMPLOS DE LANÇAMENTOS
 -- ===========================
 
 INSERT INTO transacoes
-(descricao, valor, tipo, categoria_id)
+(
+descricao,
+valor,
+tipo,
+categoria_id
+)
 VALUES
-('Salário Mensal', 5000.00, 'entrada',
- (SELECT id FROM categorias WHERE nome='Salário')),
-
-('Mercado', 450.00, 'saida',
- (SELECT id FROM categorias WHERE nome='Alimentação')),
-
-('Aluguel', 1800.00, 'saida',
- (SELECT id FROM categorias WHERE nome='Moradia'));
+(
+'Salário Mensal',
+5000.00,
+'entrada',
+(SELECT id FROM categorias WHERE nome = 'Salário')
+),
+(
+'Mercado',
+450.00,
+'saida',
+(SELECT id FROM categorias WHERE nome = 'Alimentação')
+),
+(
+'Aluguel',
+1800.00,
+'saida',
+(SELECT id FROM categorias WHERE nome = 'Moradia')
+);
 
 -- ===========================
 -- CONSULTAS ÚTEIS
 -- ===========================
 
--- Ver transações
+-- Todas as transações
 -- SELECT * FROM vw_relatorio_financeiro;
 
--- Ver resumo financeiro
+-- Resumo geral
 -- SELECT * FROM vw_resumo_geral;
 
--- Ver saldo atual
+-- Resumo por mês
+-- SELECT * FROM vw_resumo_mensal;
+
+-- Saldo atual
 -- SELECT saldo_total();
+
+-- Entradas
+-- SELECT * FROM transacoes
+-- WHERE tipo = 'entrada';
+
+-- Saídas
+-- SELECT * FROM transacoes
+-- WHERE tipo = 'saida';
+
+-- Gastos por categoria
+-- SELECT
+--     c.nome,
+--     SUM(t.valor)
+-- FROM transacoes t
+-- JOIN categorias c ON c.id = t.categoria_id
+-- WHERE t.tipo = 'saida'
+-- GROUP BY c.nome
+-- ORDER BY SUM(t.valor) DESC;
