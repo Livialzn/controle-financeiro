@@ -1,246 +1,230 @@
 import datetime
 from supabase import create_client
 
-SUPABASE_URL = "https://SEU_PROJETO.supabase.co"
-SUPABASE_KEY = "SUA_CHAVE"
+SUPABASE_URL = "https://ahsrukaodswcdigwynhm.supabase.co/rest/v1/"
+SUPABASE_KEY = "sb_publishable_HY16cUliwRQLziip5SuCjw_kHXJILp_"
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def buscar_categoria(nome):
-resultado = (
-supabase
-.table("categorias")
-.select("id")
-.eq("nome", nome)
-.execute()
-)
-
-```
-if resultado.data:
-    return resultado.data[0]["id"]
-
-return None
-```
-
-def adicionar_receita():
-print("\n===== RECEITA =====")
-
-```
-descricao = input("Descrição: ")
-valor = ler_numero("Valor: R$ ")
-
-print("\nCategorias disponíveis:")
-print("Salário")
-print("Freelance")
-print("Investimentos")
-
-categoria_nome = input("Categoria: ")
-
-categoria_id = buscar_categoria(categoria_nome)
-
-if not categoria_id:
-    print("❌ Categoria não encontrada.")
-    return
-
-data_formatada = ler_data(
-    "Data (DD/MM/AAAA): "
-)
-
-supabase.table("transacoes").insert({
-    "descricao": descricao,
-    "valor": valor,
-    "tipo": "entrada",
-    "categoria_id": categoria_id,
-    "data_movimento": data_formatada
-}).execute()
-
-print("✅ Receita cadastrada!")
-```
-
-def adicionar_despesa():
-print("\n===== DESPESA =====")
-
-```
-descricao = input("Descrição: ")
-valor = ler_numero("Valor: R$ ")
-
-print("\nCategorias disponíveis:")
-print("Alimentação")
-print("Moradia")
-print("Transporte")
-print("Saúde")
-print("Lazer")
-
-categoria_nome = input("Categoria: ")
-
-categoria_id = buscar_categoria(categoria_nome)
-
-if not categoria_id:
-    print("❌ Categoria não encontrada.")
-    return
-
-data_formatada = ler_data(
-    "Data (DD/MM/AAAA): "
-)
-
-observacao = input(
-    "Observação (opcional): "
-)
-
-supabase.table("transacoes").insert({
-    "descricao": descricao,
-    "valor": valor,
-    "tipo": "saida",
-    "categoria_id": categoria_id,
-    "data_movimento": data_formatada,
-    "observacao": observacao
-}).execute()
-
-print("✅ Despesa cadastrada!")
-```
-
-def calcular_saldo():
-resultado = (
-supabase
-.table("vw_resumo_geral")
-.select("*")
-.execute()
-)
-
-```
-if resultado.data:
-    return float(
-        resultado.data[0]["saldo_atual"]
+    resultado = (
+        supabase
+        .table("categorias")
+        .select("id")
+        .eq("nome", nome)
+        .execute()
     )
 
-return 0.0
-```
+    if resultado.data:
+        return resultado.data[0]["id"]
+
+    return None
+
+def adicionar_receita():
+    print("\n===== RECEITA =====")
+
+    descricao = input("Descrição: ")
+    valor = ler_numero("Valor: R$ ")
+
+    print("\nCategorias disponíveis:")
+    print("Salário")
+    print("Freelance")
+    print("Investimentos")
+
+    categoria_nome = input("Categoria: ")
+
+    categoria_id = buscar_categoria(categoria_nome)
+
+    if not categoria_id:
+        print("❌ Categoria não encontrada.")
+        return
+
+    data_formatada = ler_data(
+        "Data (DD/MM/AAAA): "
+    )
+
+    supabase.table("transacoes").insert({
+        "descricao": descricao,
+        "valor": valor,
+        "tipo": "entrada",
+        "categoria_id": categoria_id,
+        "data_movimento": data_formatada
+    }).execute()
+
+    print("✅ Receita cadastrada!")
+
+def adicionar_despesa():
+    print("\n===== DESPESA =====")
+
+    descricao = input("Descrição: ")
+    valor = ler_numero("Valor: R$ ")
+
+    print("\nCategorias disponíveis:")
+    print("Alimentação")
+    print("Moradia")
+    print("Transporte")
+    print("Saúde")
+    print("Lazer")
+
+    categoria_nome = input("Categoria: ")
+
+    categoria_id = buscar_categoria(categoria_nome)
+
+    if not categoria_id:
+        print("❌ Categoria não encontrada.")
+        return
+
+    data_formatada = ler_data(
+        "Data (DD/MM/AAAA): "
+    )
+
+    observacao = input(
+        "Observação (opcional): "
+    )
+
+    supabase.table("transacoes").insert({
+        "descricao": descricao,
+        "valor": valor,
+        "tipo": "saida",
+        "categoria_id": categoria_id,
+        "data_movimento": data_formatada,
+        "observacao": observacao
+    }).execute()
+
+    print("✅ Despesa cadastrada!")
+
+def calcular_saldo():
+    resultado = (
+        supabase
+        .table("vw_resumo_geral")
+        .select("*")
+        .execute()
+    )
+
+    if resultado.data:
+        return float(
+            resultado.data[0]["saldo_atual"]
+        )
+
+    return 0.0
 
 def ver_saldo():
-saldo = calcular_saldo()
+    saldo = calcular_saldo()
 
-```
-print(
-    f"\n💰 Saldo atual: R$ {saldo:.2f}"
-)
-```
+    print(
+        f"\n💰 Saldo atual: R$ {saldo:.2f}"
+    )
 
 def ver_historico():
 
-```
-dados = (
-    supabase
-    .table("vw_relatorio_financeiro")
-    .select("*")
-    .order(
-        "data_movimento",
-        desc=True
+    dados = (
+        supabase
+        .table("vw_relatorio_financeiro")
+        .select("*")
+        .order(
+            "data_movimento",
+            desc=True
+        )
+        .execute()
     )
-    .execute()
-)
-
-print(
-    "\n===== HISTÓRICO DE TRANSAÇÕES ====="
-)
-
-if not dados.data:
-    print("Nenhuma transação cadastrada.")
-    return
-
-for item in dados.data:
 
     print(
-        f"{item['data_movimento']} | "
-        f"{item['tipo']} | "
-        f"{item['categoria']} | "
-        f"R$ {float(item['valor']):.2f} | "
-        f"{item['descricao']}"
+        "\n===== HISTÓRICO DE TRANSAÇÕES ====="
     )
-```
+
+    if not dados.data:
+        print("Nenhuma transação cadastrada.")
+        return
+
+    for item in dados.data:
+
+        print(
+            f"{item['data_movimento']} | "
+            f"{item['tipo']} | "
+            f"{item['categoria']} | "
+            f"R$ {float(item['valor']):.2f} | "
+            f"{item['descricao']}"
+        )
 
 def analisar_financas():
 
-```
-resumo = (
-    supabase
-    .table("vw_resumo_geral")
-    .select("*")
-    .execute()
-)
-
-if not resumo.data:
-    print("Sem dados.")
-    return
-
-dados = resumo.data[0]
-
-entradas = float(
-    dados["total_entradas"]
-)
-
-saidas = float(
-    dados["total_saidas"]
-)
-
-saldo = float(
-    dados["saldo_atual"]
-)
-
-print(
-    "\n===== ANÁLISE FINANCEIRA ====="
-)
-
-print(
-    f"Entradas: R$ {entradas:.2f}"
-)
-
-print(
-    f"Saídas: R$ {saidas:.2f}"
-)
-
-print(
-    f"Saldo: R$ {saldo:.2f}"
-)
-
-if saldo >= 0:
-    print(
-        "\n✅ Situação financeira positiva."
+    resumo = (
+        supabase
+        .table("vw_resumo_geral")
+        .select("*")
+        .execute()
     )
-else:
-    print(
-        "\n❌ Situação financeira negativa."
+
+    if not resumo.data:
+        print("Sem dados.")
+        return
+
+    dados = resumo.data[0]
+
+    entradas = float(
+        dados["total_entradas"]
     )
-```
+
+    saidas = float(
+        dados["total_saidas"]
+    )
+
+    saldo = float(
+        dados["saldo_atual"]
+    )
+
+    print(
+        "\n===== ANÁLISE FINANCEIRA ====="
+    )
+
+    print(
+        f"Entradas: R$ {entradas:.2f}"
+    )
+
+    print(
+        f"Saídas: R$ {saidas:.2f}"
+    )
+
+    print(
+        f"Saldo: R$ {saldo:.2f}"
+    )
+
+    if saldo >= 0:
+        print(
+            "\n✅ Situação financeira positiva."
+        )
+    else:
+        print(
+            "\n❌ Situação financeira negativa."
+        )
 
 def ler_numero(msg):
-while True:
-try:
-return float(input(msg))
-except ValueError:
-print("Digite um valor válido.")
+    while True:
+        try:
+            return float(input(msg))
+        except ValueError:
+            print("Digite um valor válido.")
 
 def ler_data(msg):
-while True:
+    while True:
 
-```
-    valor = input(msg)
+        valor = input(msg)
 
-    formatos = [
-        "%d/%m/%Y",
-        "%d-%m-%Y",
-        "%d%m%Y"
-    ]
+        formatos = [
+            "%d/%m/%Y",
+            "%d-%m-%Y",
+            "%d%m%Y"
+        ]
 
-    for formato in formatos:
-        try:
-            return datetime.datetime.strptime(
-                valor,
-                formato
-            ).strftime("%Y-%m-%d")
-        except ValueError:
-            pass
+        for formato in formatos:
+            try:
+                return datetime.datetime.strptime(
+                    valor,
+                    formato
+                ).strftime("%Y-%m-%d")
+            except ValueError:
+                pass
 
-    print(
-        "Data inválida."
-    )
-```
+        print(
+            "Data inválida."
+        )
