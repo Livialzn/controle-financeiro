@@ -270,19 +270,19 @@ INSERT INTO transacoes
 VALUES
 (
 'Salário Mensal',
-5000.00,
+0000.00,
 'entrada',
 (SELECT id FROM categorias WHERE nome = 'Salário')
 ),
 (
 'Mercado',
-450.00,
+000.00,
 'saida',
 (SELECT id FROM categorias WHERE nome = 'Alimentação')
 ),
 (
 'Aluguel',
-1800.00,
+0000.00,
 'saida',
 (SELECT id FROM categorias WHERE nome = 'Moradia')
 );
