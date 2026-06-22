@@ -228,3 +228,44 @@ def ler_data(msg):
         print(
             "Data inválida."
         )
+
+
+       def menu():
+    while True:
+        print("\n==============================")
+        print("     CONTROLE FINANCEIRO")
+        print("==============================")
+        print("1 - Adicionar Receita")
+        print("2 - Adicionar Despesa")
+        print("3 - Ver Saldo")
+        print("4 - Ver Histórico")
+        print("5 - Analisar Finanças")
+        print("0 - Sair")
+
+        opcao = input("\nEscolha uma opção: ")
+
+        if opcao == "1":
+            adicionar_receita()
+
+        elif opcao == "2":
+            adicionar_despesa()
+
+        elif opcao == "3":
+            ver_saldo()
+
+        elif opcao == "4":
+            ver_historico()
+
+        elif opcao == "5":
+            analisar_financas()
+
+        elif opcao == "0":
+            print("\nPrograma encerrado.")
+            break
+
+        else:
+            print("\n❌ Opção inválida.")
+
+
+if __name__ == "__main__":
+    menu()
