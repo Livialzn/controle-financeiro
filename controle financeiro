@@ -230,7 +230,7 @@ def ler_data(msg):
         )
 
 
-       def menu():
+    def menu():
     while True:
         print("\n==============================")
         print("     CONTROLE FINANCEIRO")
