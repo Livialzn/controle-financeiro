@@ -78,9 +78,7 @@ def adicionar_despesa():
         "Data (DD/MM/AAAA): "
     )
 
-    observacao = input(
-        "Observação (opcional): "
-    )
+    
 
     supabase.table("transacoes").insert({
         "descricao": descricao,
@@ -88,7 +86,7 @@ def adicionar_despesa():
         "tipo": "saida",
         "categoria_id": categoria_id,
         "data_movimento": data_formatada,
-        "observacao": observacao
+        
     }).execute()
 
     print("✅ Despesa cadastrada!")
@@ -229,8 +227,7 @@ def ler_data(msg):
             "Data inválida."
         )
 
-
-    def menu():
+def menu():
     while True:
         print("\n==============================")
         print("     CONTROLE FINANCEIRO")
