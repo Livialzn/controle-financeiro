@@ -1,212 +1,982 @@
 import datetime
 from supabase import create_client
 
+
+# =========================================================
+# CONFIGURAÇÃO DO SUPABASE
+# =========================================================
+
 SUPABASE_URL = "https://ahsrukaodswcdigwynhm.supabase.co"
 SUPABASE_KEY = "sb_publishable_HY16cUliwRQLziip5SuCjw_kHXJILp_"
 
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase = create_client(
+    SUPABASE_URL,
+    SUPABASE_KEY
+)
 
-def buscar_categoria(nome):
-    resultado = (
-        supabase
-        .table("categorias")
-        .select("id")
-        .eq("nome", nome)
-        .execute()
+
+# =========================================================
+# USUÁRIO LOGADO
+# =========================================================
+
+usuario_logado = None
+
+
+# =========================================================
+# FORMATAÇÃO DE DINHEIRO
+# =========================================================
+
+def formatar_dinheiro(valor):
+
+    return (
+        f"R$ {valor:,.2f}"
+        .replace(",", "X")
+        .replace(".", ",")
+        .replace("X", ".")
     )
 
-    if resultado.data:
-        return resultado.data[0]["id"]
 
-    return None
+# =========================================================
+# CADASTRO DE USUÁRIO
+# =========================================================
 
-def adicionar_receita():
-    print("\n===== RECEITA =====")
+def cadastrar_usuario():
 
-    descricao = input("Descrição: ")
-    valor = ler_numero("Valor: R$ ")
+    print("\n======================================")
+    print("          CADASTRO DE USUÁRIO")
+    print("======================================")
 
-    print("\nCategorias disponíveis:")
-    print("Salário")
-    print("Freelance")
-    print("Investimentos")
+    nome = input("Nome: ").strip()
 
-    categoria_nome = input("Categoria: ")
+    email = input("E-mail: ").strip()
 
-    categoria_id = buscar_categoria(categoria_nome)
+    senha = input("Senha: ").strip()
 
-    if not categoria_id:
-        print("❌ Categoria não encontrada.")
+    confirmar_senha = input(
+        "Confirmar senha: "
+    ).strip()
+
+    if not nome:
+
+        print("\n❌ Informe o nome.")
+
         return
 
-    data_formatada = ler_data(
-        "Data (DD/MM/AAAA): "
-    )
+    if not email:
 
-    supabase.table("transacoes").insert({
-        "descricao": descricao,
-        "valor": valor,
-        "tipo": "entrada",
-        "categoria_id": categoria_id,
-        "data_movimento": data_formatada
-    }).execute()
+        print("\n❌ Informe o e-mail.")
 
-    print("✅ Receita cadastrada!")
-
-def adicionar_despesa():
-    print("\n===== DESPESA =====")
-
-    descricao = input("Descrição: ")
-    valor = ler_numero("Valor: R$ ")
-
-    print("\nCategorias disponíveis:")
-    print("Alimentação")
-    print("Moradia")
-    print("Transporte")
-    print("Saúde")
-    print("Lazer")
-
-    categoria_nome = input("Categoria: ")
-
-    categoria_id = buscar_categoria(categoria_nome)
-
-    if not categoria_id:
-        print("❌ Categoria não encontrada.")
         return
 
-    data_formatada = ler_data(
-        "Data (DD/MM/AAAA): "
-    )
+    if not senha:
 
-    
+        print("\n❌ Informe a senha.")
 
-    supabase.table("transacoes").insert({
-        "descricao": descricao,
-        "valor": valor,
-        "tipo": "saida",
-        "categoria_id": categoria_id,
-        "data_movimento": data_formatada,
-        
-    }).execute()
+        return
 
-    print("✅ Despesa cadastrada!")
+    if senha != confirmar_senha:
 
-def calcular_saldo():
-    resultado = (
-        supabase
-        .table("vw_resumo_geral")
-        .select("*")
-        .execute()
-    )
-
-    if resultado.data:
-        return float(
-            resultado.data[0]["saldo_atual"]
+        print(
+            "\n❌ As senhas não são iguais."
         )
 
-    return 0.0
+        return
 
-def ver_saldo():
-    saldo = calcular_saldo()
+    if len(senha) < 6:
+
+        print(
+            "\n❌ A senha deve ter pelo menos 6 caracteres."
+        )
+
+        return
+
+    try:
+
+        resultado = supabase.auth.sign_up({
+
+            "email": email,
+
+            "password": senha,
+
+            "options": {
+                "data": {
+                    "nome": nome
+                }
+            }
+
+        })
+
+        if resultado.user:
+
+            print(
+                "\n✅ Usuário cadastrado com sucesso!"
+            )
+
+            print(
+                f"📧 E-mail: {email}"
+            )
+
+            if resultado.session is None:
+
+                print(
+                    "\n📧 Verifique seu e-mail "
+                    "para confirmar a conta."
+                )
+
+            else:
+
+                print(
+                    "\n✅ Conta criada e usuário conectado."
+                )
+
+        else:
+
+            print(
+                "\n❌ Não foi possível cadastrar o usuário."
+            )
+
+    except Exception as erro:
+
+        print(
+            f"\n❌ Erro no cadastro:"
+        )
+
+        print(erro)
+
+
+# =========================================================
+# LOGIN
+# =========================================================
+
+def fazer_login():
+
+    global usuario_logado
+
+    print("\n======================================")
+    print("                LOGIN")
+    print("======================================")
+
+    email = input(
+        "E-mail: "
+    ).strip()
+
+    senha = input(
+        "Senha: "
+    ).strip()
+
+    if not email or not senha:
+
+        print(
+            "\n❌ E-mail e senha são obrigatórios."
+        )
+
+        return False
+
+    try:
+
+        resultado = (
+            supabase
+            .auth
+            .sign_in_with_password({
+                "email": email,
+                "password": senha
+            })
+        )
+
+        if resultado.user:
+
+            usuario_logado = resultado.user
+
+            print(
+                "\n✅ Login realizado com sucesso!"
+            )
+
+            print(
+                f"👤 Usuário: {usuario_logado.email}"
+            )
+
+            return True
+
+        print(
+            "\n❌ E-mail ou senha inválidos."
+        )
+
+        return False
+
+    except Exception as erro:
+
+        print(
+            "\n❌ Erro ao fazer login:"
+        )
+
+        print(erro)
+
+        return False
+
+
+# =========================================================
+# LOGOUT
+# =========================================================
+
+def fazer_logout():
+
+    global usuario_logado
+
+    try:
+
+        supabase.auth.sign_out()
+
+        usuario_logado = None
+
+        print(
+            "\n✅ Logout realizado."
+        )
+
+    except Exception as erro:
+
+        print(
+            "\n❌ Erro ao sair:"
+        )
+
+        print(erro)
+
+
+# =========================================================
+# ID DO USUÁRIO
+# =========================================================
+
+def pegar_usuario_id():
+
+    if usuario_logado is None:
+
+        return None
+
+    return usuario_logado.id
+
+
+# =========================================================
+# BUSCAR CATEGORIAS
+# =========================================================
+
+def buscar_categorias(tipo):
+
+    try:
+
+        resultado = (
+            supabase
+            .table("categorias")
+            .select("id, nome")
+            .eq("tipo", tipo)
+            .order("nome")
+            .execute()
+        )
+
+        return resultado.data
+
+    except Exception as erro:
+
+        print(
+            "\n❌ Erro ao buscar categorias:"
+        )
+
+        print(erro)
+
+        return []
+
+
+# =========================================================
+# ESCOLHER CATEGORIA
+# =========================================================
+
+def escolher_categoria(tipo):
+
+    categorias = buscar_categorias(tipo)
+
+    if not categorias:
+
+        print(
+            "\n❌ Nenhuma categoria encontrada."
+        )
+
+        return None
 
     print(
-        f"\n💰 Saldo atual: R$ {saldo:.2f}"
+        "\nCategorias disponíveis:"
     )
+
+    for numero, categoria in enumerate(
+        categorias,
+        start=1
+    ):
+
+        print(
+            f"{numero} - {categoria['nome']}"
+        )
+
+    while True:
+
+        try:
+
+            opcao = int(
+                input(
+                    "\nEscolha a categoria: "
+                )
+            )
+
+            if 1 <= opcao <= len(categorias):
+
+                return categorias[
+                    opcao - 1
+                ]["id"]
+
+            print(
+                "\n❌ Categoria inválida."
+            )
+
+        except ValueError:
+
+            print(
+                "\n❌ Digite um número."
+            )
+
+
+# =========================================================
+# ADICIONAR RECEITA
+# =========================================================
+
+def adicionar_receita():
+
+    print("\n======================================")
+    print("            NOVA RECEITA")
+    print("======================================")
+
+    user_id = pegar_usuario_id()
+
+    if not user_id:
+
+        print(
+            "\n❌ Você não está logado."
+        )
+
+        return
+
+    descricao = input(
+        "Descrição: "
+    ).strip()
+
+    if not descricao:
+
+        print(
+            "\n❌ Informe a descrição."
+        )
+
+        return
+
+    valor = ler_numero(
+        "Valor: R$ "
+    )
+
+    categoria_id = escolher_categoria(
+        "entrada"
+    )
+
+    if categoria_id is None:
+
+        return
+
+    data = ler_data(
+        "Data (DD/MM/AAAA): "
+    )
+
+    try:
+
+        supabase.table(
+            "transacoes"
+        ).insert({
+
+            "user_id": user_id,
+
+            "descricao": descricao,
+
+            "valor": valor,
+
+            "tipo": "entrada",
+
+            "categoria_id": categoria_id,
+
+            "data_movimento": data
+
+        }).execute()
+
+        print(
+            "\n✅ Receita cadastrada com sucesso!"
+        )
+
+    except Exception as erro:
+
+        print(
+            "\n❌ Erro ao cadastrar receita:"
+        )
+
+        print(erro)
+
+
+# =========================================================
+# ADICIONAR DESPESA
+# =========================================================
+
+def adicionar_despesa():
+
+    print("\n======================================")
+    print("            NOVA DESPESA")
+    print("======================================")
+
+    user_id = pegar_usuario_id()
+
+    if not user_id:
+
+        print(
+            "\n❌ Você não está logado."
+        )
+
+        return
+
+    descricao = input(
+        "Descrição: "
+    ).strip()
+
+    if not descricao:
+
+        print(
+            "\n❌ Informe a descrição."
+        )
+
+        return
+
+    valor = ler_numero(
+        "Valor: R$ "
+    )
+
+    categoria_id = escolher_categoria(
+        "saida"
+    )
+
+    if categoria_id is None:
+
+        return
+
+    data = ler_data(
+        "Data (DD/MM/AAAA): "
+    )
+
+    try:
+
+        supabase.table(
+            "transacoes"
+        ).insert({
+
+            "user_id": user_id,
+
+            "descricao": descricao,
+
+            "valor": valor,
+
+            "tipo": "saida",
+
+            "categoria_id": categoria_id,
+
+            "data_movimento": data
+
+        }).execute()
+
+        print(
+            "\n✅ Despesa cadastrada com sucesso!"
+        )
+
+    except Exception as erro:
+
+        print(
+            "\n❌ Erro ao cadastrar despesa:"
+        )
+
+        print(erro)
+
+
+# =========================================================
+# BUSCAR TRANSAÇÕES DO USUÁRIO
+# =========================================================
+
+def buscar_transacoes():
+
+    user_id = pegar_usuario_id()
+
+    if not user_id:
+
+        return []
+
+    try:
+
+        resultado = (
+            supabase
+            .table("transacoes")
+            .select(
+                """
+                id,
+                descricao,
+                valor,
+                tipo,
+                data_movimento,
+                categoria_id,
+                categorias (
+                    nome
+                )
+                """
+            )
+            .eq(
+                "user_id",
+                user_id
+            )
+            .order(
+                "data_movimento",
+                desc=True
+            )
+            .execute()
+        )
+
+        return resultado.data
+
+    except Exception as erro:
+
+        print(
+            "\n❌ Erro ao buscar transações:"
+        )
+
+        print(erro)
+
+        return []
+
+
+# =========================================================
+# CALCULAR SALDO
+# =========================================================
+
+def calcular_saldo():
+
+    transacoes = buscar_transacoes()
+
+    saldo = 0.0
+
+    for transacao in transacoes:
+
+        valor = float(
+            transacao["valor"]
+        )
+
+        if transacao["tipo"] == "entrada":
+
+            saldo += valor
+
+        elif transacao["tipo"] == "saida":
+
+            saldo -= valor
+
+    return saldo
+
+
+# =========================================================
+# VER SALDO
+# =========================================================
+
+def ver_saldo():
+
+    saldo = calcular_saldo()
+
+    print("\n======================================")
+    print("              SALDO ATUAL")
+    print("======================================")
+
+    print(
+        f"\n💰 {formatar_dinheiro(saldo)}"
+    )
+
+
+# =========================================================
+# HISTÓRICO
+# =========================================================
 
 def ver_historico():
 
-    dados = (
-        supabase
-        .table("vw_relatorio_financeiro")
-        .select("*")
-        .order(
-            "data_movimento",
-            desc=True
-        )
-        .execute()
-    )
+    transacoes = buscar_transacoes()
 
-    print(
-        "\n===== HISTÓRICO DE TRANSAÇÕES ====="
-    )
+    print("\n======================================")
+    print("        HISTÓRICO FINANCEIRO")
+    print("======================================")
 
-    if not dados.data:
-        print("Nenhuma transação cadastrada.")
-        return
-
-    for item in dados.data:
+    if not transacoes:
 
         print(
-            f"{item['data_movimento']} | "
-            f"{item['tipo']} | "
-            f"{item['categoria']} | "
-            f"R$ {float(item['valor']):.2f} | "
-            f"{item['descricao']}"
+            "\nNenhuma transação cadastrada."
         )
+
+        return
+
+    for item in transacoes:
+
+        categoria = "Sem categoria"
+
+        if item.get("categorias"):
+
+            categoria = item[
+                "categorias"
+            ]["nome"]
+
+        if item["tipo"] == "entrada":
+
+            simbolo = "+"
+
+        else:
+
+            simbolo = "-"
+
+        valor = float(
+            item["valor"]
+        )
+
+        print(
+            "\n--------------------------------------"
+        )
+
+        print(
+            f"Data:       {item['data_movimento']}"
+        )
+
+        print(
+            f"Tipo:       {item['tipo']}"
+        )
+
+        print(
+            f"Categoria:  {categoria}"
+        )
+
+        print(
+            f"Valor:      {simbolo} "
+            f"{formatar_dinheiro(valor)}"
+        )
+
+        print(
+            f"Descrição:  {item['descricao']}"
+        )
+
+
+# =========================================================
+# ANÁLISE FINANCEIRA
+# =========================================================
 
 def analisar_financas():
 
-    resumo = (
-        supabase
-        .table("vw_resumo_geral")
-        .select("*")
-        .execute()
-    )
+    transacoes = buscar_transacoes()
 
-    if not resumo.data:
-        print("Sem dados.")
+    if not transacoes:
+
+        print(
+            "\n❌ Nenhuma transação cadastrada."
+        )
+
         return
 
-    dados = resumo.data[0]
+    entradas = 0.0
 
-    entradas = float(
-        dados["total_entradas"]
-    )
+    saidas = 0.0
 
-    saidas = float(
-        dados["total_saidas"]
-    )
+    for item in transacoes:
 
-    saldo = float(
-        dados["saldo_atual"]
+        valor = float(
+            item["valor"]
+        )
+
+        if item["tipo"] == "entrada":
+
+            entradas += valor
+
+        elif item["tipo"] == "saida":
+
+            saidas += valor
+
+    saldo = entradas - saidas
+
+    print("\n======================================")
+    print("          ANÁLISE FINANCEIRA")
+    print("======================================")
+
+    print(
+        f"\nEntradas: {formatar_dinheiro(entradas)}"
     )
 
     print(
-        "\n===== ANÁLISE FINANCEIRA ====="
+        f"Saídas:   {formatar_dinheiro(saidas)}"
     )
 
     print(
-        f"Entradas: R$ {entradas:.2f}"
+        f"Saldo:    {formatar_dinheiro(saldo)}"
     )
 
-    print(
-        f"Saídas: R$ {saidas:.2f}"
-    )
+    if entradas > 0:
 
-    print(
-        f"Saldo: R$ {saldo:.2f}"
-    )
+        percentual = (
+            saidas / entradas
+        ) * 100
 
-    if saldo >= 0:
+        print(
+            f"\nVocê utilizou "
+            f"{percentual:.2f}% "
+            f"das suas entradas."
+        )
+
+    if saldo > 0:
+
         print(
             "\n✅ Situação financeira positiva."
         )
+
+    elif saldo == 0:
+
+        print(
+            "\n⚠️ Entradas e saídas estão equilibradas."
+        )
+
     else:
+
         print(
             "\n❌ Situação financeira negativa."
         )
 
-def ler_numero(msg):
+
+# =========================================================
+# EXCLUIR TRANSAÇÃO
+# =========================================================
+
+def excluir_transacao():
+
+    transacoes = buscar_transacoes()
+
+    if not transacoes:
+
+        print(
+            "\n❌ Nenhuma transação cadastrada."
+        )
+
+        return
+
+    print("\n======================================")
+    print("          EXCLUIR TRANSAÇÃO")
+    print("======================================")
+
+    for numero, item in enumerate(
+        transacoes,
+        start=1
+    ):
+
+        print(
+            f"{numero} - "
+            f"{item['data_movimento']} | "
+            f"{item['descricao']} | "
+            f"{formatar_dinheiro(float(item['valor']))}"
+        )
+
+    print(
+        "0 - Cancelar"
+    )
+
+    try:
+
+        opcao = int(
+            input(
+                "\nEscolha: "
+            )
+        )
+
+        if opcao == 0:
+
+            return
+
+        if opcao < 1 or opcao > len(transacoes):
+
+            print(
+                "\n❌ Opção inválida."
+            )
+
+            return
+
+        transacao = transacoes[
+            opcao - 1
+        ]
+
+        confirmar = input(
+            "\nConfirma a exclusão? (S/N): "
+        ).strip().upper()
+
+        if confirmar != "S":
+
+            print(
+                "\n❌ Operação cancelada."
+            )
+
+            return
+
+        user_id = pegar_usuario_id()
+
+        (
+            supabase
+            .table("transacoes")
+            .delete()
+            .eq(
+                "id",
+                transacao["id"]
+            )
+            .eq(
+                "user_id",
+                user_id
+            )
+            .execute()
+        )
+
+        print(
+            "\n✅ Transação excluída."
+        )
+
+    except ValueError:
+
+        print(
+            "\n❌ Digite um número válido."
+        )
+
+    except Exception as erro:
+
+        print(
+            "\n❌ Erro ao excluir:"
+        )
+
+        print(erro)
+
+
+# =========================================================
+# VER PERFIL
+# =========================================================
+
+def ver_perfil():
+
+    user_id = pegar_usuario_id()
+
+    if not user_id:
+
+        print(
+            "\n❌ Usuário não está logado."
+        )
+
+        return
+
+    try:
+
+        resultado = (
+            supabase
+            .table("perfis")
+            .select("*")
+            .eq(
+                "id",
+                user_id
+            )
+            .execute()
+        )
+
+        if not resultado.data:
+
+            print(
+                "\n❌ Perfil não encontrado."
+            )
+
+            return
+
+        perfil = resultado.data[0]
+
+        print("\n======================================")
+        print("                 PERFIL")
+        print("======================================")
+
+        print(
+            f"\nNome: "
+            f"{perfil['nome']}"
+        )
+
+        print(
+            f"E-mail: "
+            f"{perfil['email']}"
+        )
+
+        print(
+            f"Data de cadastro: "
+            f"{perfil['data_cadastro']}"
+        )
+
+    except Exception as erro:
+
+        print(
+            "\n❌ Erro ao buscar perfil:"
+        )
+
+        print(erro)
+
+
+# =========================================================
+# LER NÚMERO
+# =========================================================
+
+def ler_numero(mensagem):
+
     while True:
+
         try:
-            return float(input(msg))
-        except ValueError:
-            print("Digite um valor válido.")
 
-def ler_data(msg):
+            valor = input(
+                mensagem
+            ).strip()
+
+            valor = valor.replace(
+                ",",
+                "."
+            )
+
+            numero = float(
+                valor
+            )
+
+            if numero <= 0:
+
+                print(
+                    "❌ Digite um valor maior que zero."
+                )
+
+                continue
+
+            return numero
+
+        except ValueError:
+
+            print(
+                "❌ Digite um valor válido."
+            )
+
+
+# =========================================================
+# LER DATA
+# =========================================================
+
+def ler_data(mensagem):
+
     while True:
 
-        valor = input(msg)
+        valor = input(
+            mensagem
+        ).strip()
 
         formatos = [
             "%d/%m/%Y",
@@ -215,54 +985,179 @@ def ler_data(msg):
         ]
 
         for formato in formatos:
+
             try:
-                return datetime.datetime.strptime(
+
+                data = datetime.datetime.strptime(
                     valor,
                     formato
-                ).strftime("%Y-%m-%d")
+                )
+
+                return data.strftime(
+                    "%Y-%m-%d"
+                )
+
             except ValueError:
+
                 pass
 
         print(
-            "Data inválida."
+            "❌ Data inválida."
         )
 
-def menu():
-    while True:
-        print("\n==============================")
-        print("     CONTROLE FINANCEIRO")
-        print("==============================")
-        print("1 - Adicionar Receita")
-        print("2 - Adicionar Despesa")
-        print("3 - Ver Saldo")
-        print("4 - Ver Histórico")
-        print("5 - Analisar Finanças")
-        print("0 - Sair")
 
-        opcao = input("\nEscolha uma opção: ")
+# =========================================================
+# MENU DO USUÁRIO
+# =========================================================
+
+def menu_usuario():
+
+    while True:
+
+        print("\n======================================")
+        print("        CONTROLE FINANCEIRO")
+        print("======================================")
+
+        print(
+            f"👤 Usuário: {usuario_logado.email}"
+        )
+
+        print("--------------------------------------")
+
+        print(
+            "1 - Adicionar Receita"
+        )
+
+        print(
+            "2 - Adicionar Despesa"
+        )
+
+        print(
+            "3 - Ver Saldo"
+        )
+
+        print(
+            "4 - Ver Histórico"
+        )
+
+        print(
+            "5 - Analisar Finanças"
+        )
+
+        print(
+            "6 - Excluir Transação"
+        )
+
+        print(
+            "7 - Ver Perfil"
+        )
+
+        print(
+            "8 - Sair da Conta"
+        )
+
+        opcao = input(
+            "\nEscolha uma opção: "
+        ).strip()
 
         if opcao == "1":
+
             adicionar_receita()
 
         elif opcao == "2":
+
             adicionar_despesa()
 
         elif opcao == "3":
+
             ver_saldo()
 
         elif opcao == "4":
+
             ver_historico()
 
         elif opcao == "5":
+
             analisar_financas()
 
-        elif opcao == "0":
-            print("\nPrograma encerrado.")
+        elif opcao == "6":
+
+            excluir_transacao()
+
+        elif opcao == "7":
+
+            ver_perfil()
+
+        elif opcao == "8":
+
+            fazer_logout()
+
             break
 
         else:
-            print("\n❌ Opção inválida.")
 
+            print(
+                "\n❌ Opção inválida."
+            )
+
+
+# =========================================================
+# MENU PRINCIPAL
+# =========================================================
+
+def menu_principal():
+
+    while True:
+
+        print("\n======================================")
+        print("          SISTEMA FINANCEIRO")
+        print("======================================")
+
+        print(
+            "1 - Cadastrar Usuário"
+        )
+
+        print(
+            "2 - Entrar"
+        )
+
+        print(
+            "0 - Sair"
+        )
+
+        opcao = input(
+            "\nEscolha uma opção: "
+        ).strip()
+
+        if opcao == "1":
+
+            cadastrar_usuario()
+
+        elif opcao == "2":
+
+            if fazer_login():
+
+                menu_usuario()
+
+        elif opcao == "0":
+
+            print(
+                "\nPrograma encerrado."
+            )
+
+            break
+
+        else:
+
+            print(
+                "\n❌ Opção inválida."
+            )
+
+
+# =========================================================
+# INICIAR PROGRAMA
+# =========================================================
 
 if __name__ == "__main__":
-    menu()
+
+    menu_principal()
