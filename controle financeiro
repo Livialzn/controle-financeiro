@@ -1,4 +1,5 @@
 import datetime
+import calendar
 from supabase import create_client
 
 
@@ -9,139 +10,112 @@ from supabase import create_client
 SUPABASE_URL = "https://ahsrukaodswcdigwynhm.supabase.co"
 SUPABASE_KEY = "sb_publishable_HY16cUliwRQLziip5SuCjw_kHXJILp_"
 
-supabase = create_client(
-    SUPABASE_URL,
-    SUPABASE_KEY
-)
-
-
-# =========================================================
-# USUÁRIO LOGADO
-# =========================================================
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 usuario_logado = None
 
 
 # =========================================================
-# FORMATAÇÃO DE DINHEIRO
+# FUNÇÕES AUXILIARES
 # =========================================================
 
 def formatar_dinheiro(valor):
-
     return (
-        f"R$ {valor:,.2f}"
+        f"R$ {float(valor):,.2f}"
         .replace(",", "X")
         .replace(".", ",")
         .replace("X", ".")
     )
 
 
+def pegar_usuario_id():
+    if usuario_logado:
+        return usuario_logado.id
+    return None
+
+
+def ler_numero(mensagem):
+    while True:
+        try:
+            valor = input(mensagem).replace(",", ".")
+            return float(valor)
+        except ValueError:
+            print("Digite um número válido.")
+
+
+def ler_data():
+    while True:
+        data = input("Data (DD/MM/AAAA): ")
+
+        try:
+            return datetime.datetime.strptime(
+                data, "%d/%m/%Y"
+            ).date().isoformat()
+        except ValueError:
+            print("Data inválida.")
+
+
+def subtrair_meses(data, meses):
+    """
+    Subtrai meses mantendo o máximo possível o dia original.
+    Exemplo:
+    31/03 - 1 mês = 28/02
+    """
+    ano = data.year
+    mes = data.month - meses
+
+    while mes <= 0:
+        mes += 12
+        ano -= 1
+
+    dia = min(data.day, calendar.monthrange(ano, mes)[1])
+
+    return datetime.date(ano, mes, dia)
+
+
 # =========================================================
-# CADASTRO DE USUÁRIO
+# CADASTRO
 # =========================================================
 
 def cadastrar_usuario():
-
-    print("\n======================================")
-    print("          CADASTRO DE USUÁRIO")
-    print("======================================")
+    print("\n===== CADASTRO =====")
 
     nome = input("Nome: ").strip()
-
     email = input("E-mail: ").strip()
+    senha = input("Senha: ")
+    confirmar = input("Confirmar senha: ")
 
-    senha = input("Senha: ").strip()
-
-    confirmar_senha = input(
-        "Confirmar senha: "
-    ).strip()
-
-    if not nome:
-
-        print("\n❌ Informe o nome.")
-
+    if not nome or not email or not senha:
+        print("Preencha todos os campos.")
         return
 
-    if not email:
-
-        print("\n❌ Informe o e-mail.")
-
-        return
-
-    if not senha:
-
-        print("\n❌ Informe a senha.")
-
-        return
-
-    if senha != confirmar_senha:
-
-        print(
-            "\n❌ As senhas não são iguais."
-        )
-
+    if senha != confirmar:
+        print("As senhas não são iguais.")
         return
 
     if len(senha) < 6:
-
-        print(
-            "\n❌ A senha deve ter pelo menos 6 caracteres."
-        )
-
+        print("A senha precisa ter pelo menos 6 caracteres.")
         return
 
     try:
-
-        resultado = supabase.auth.sign_up({
-
+        resposta = supabase.auth.sign_up({
             "email": email,
-
             "password": senha,
-
             "options": {
                 "data": {
                     "nome": nome
                 }
             }
-
         })
 
-        if resultado.user:
+        if resposta.user:
+            print("\nCadastro realizado com sucesso!")
 
-            print(
-                "\n✅ Usuário cadastrado com sucesso!"
-            )
-
-            print(
-                f"📧 E-mail: {email}"
-            )
-
-            if resultado.session is None:
-
-                print(
-                    "\n📧 Verifique seu e-mail "
-                    "para confirmar a conta."
-                )
-
-            else:
-
-                print(
-                    "\n✅ Conta criada e usuário conectado."
-                )
-
-        else:
-
-            print(
-                "\n❌ Não foi possível cadastrar o usuário."
-            )
+            if resposta.session is None:
+                print("Verifique seu e-mail para confirmar a conta.")
 
     except Exception as erro:
-
-        print(
-            f"\n❌ Erro no cadastro:"
-        )
-
-        print(erro)
+        print("Erro ao cadastrar:", erro)
 
 
 # =========================================================
@@ -149,69 +123,49 @@ def cadastrar_usuario():
 # =========================================================
 
 def fazer_login():
-
     global usuario_logado
 
-    print("\n======================================")
-    print("                LOGIN")
-    print("======================================")
+    print("\n===== LOGIN =====")
 
-    email = input(
-        "E-mail: "
-    ).strip()
-
-    senha = input(
-        "Senha: "
-    ).strip()
-
-    if not email or not senha:
-
-        print(
-            "\n❌ E-mail e senha são obrigatórios."
-        )
-
-        return False
+    email = input("E-mail: ").strip()
+    senha = input("Senha: ")
 
     try:
+        resposta = supabase.auth.sign_in_with_password({
+            "email": email,
+            "password": senha
+        })
 
-        resultado = (
-            supabase
-            .auth
-            .sign_in_with_password({
-                "email": email,
-                "password": senha
-            })
-        )
+        usuario_logado = resposta.user
 
-        if resultado.user:
-
-            usuario_logado = resultado.user
-
-            print(
-                "\n✅ Login realizado com sucesso!"
-            )
-
-            print(
-                f"👤 Usuário: {usuario_logado.email}"
-            )
-
-            return True
-
-        print(
-            "\n❌ E-mail ou senha inválidos."
-        )
-
-        return False
+        print("\nLogin realizado com sucesso!")
+        print("Bem-vindo,", usuario_logado.email)
 
     except Exception as erro:
+        print("Erro ao fazer login:", erro)
 
-        print(
-            "\n❌ Erro ao fazer login:"
-        )
 
-        print(erro)
+# =========================================================
+# RECUPERAÇÃO DE SENHA
+# =========================================================
 
-        return False
+def recuperar_senha():
+    print("\n===== RECUPERAR SENHA =====")
+
+    email = input("Digite seu e-mail cadastrado: ").strip()
+
+    if not email:
+        print("Digite um e-mail.")
+        return
+
+    try:
+        supabase.auth.reset_password_for_email(email)
+
+        print("\nSe o e-mail estiver cadastrado,")
+        print("um link para redefinir a senha será enviado.")
+
+    except Exception as erro:
+        print("Erro ao solicitar recuperação:", erro)
 
 
 # =========================================================
@@ -219,50 +173,49 @@ def fazer_login():
 # =========================================================
 
 def fazer_logout():
-
     global usuario_logado
 
     try:
-
         supabase.auth.sign_out()
+    except:
+        pass
 
-        usuario_logado = None
+    usuario_logado = None
 
-        print(
-            "\n✅ Logout realizado."
+    print("\nLogout realizado.")
+
+
+# =========================================================
+# VERIFICAR ADMIN
+# =========================================================
+
+def usuario_eh_admin():
+    if not usuario_logado:
+        return False
+
+    try:
+        resposta = (
+            supabase
+            .table("perfis")
+            .select("role")
+            .eq("id", usuario_logado.id)
+            .single()
+            .execute()
         )
 
-    except Exception as erro:
+        return resposta.data["role"] == "admin"
 
-        print(
-            "\n❌ Erro ao sair:"
-        )
-
-        print(erro)
+    except Exception:
+        return False
 
 
 # =========================================================
-# ID DO USUÁRIO
-# =========================================================
-
-def pegar_usuario_id():
-
-    if usuario_logado is None:
-
-        return None
-
-    return usuario_logado.id
-
-
-# =========================================================
-# BUSCAR CATEGORIAS
+# CATEGORIAS
 # =========================================================
 
 def buscar_categorias(tipo):
-
     try:
-
-        resultado = (
+        resposta = (
             supabase
             .table("categorias")
             .select("id, nome")
@@ -271,73 +224,36 @@ def buscar_categorias(tipo):
             .execute()
         )
 
-        return resultado.data
+        return resposta.data or []
 
     except Exception as erro:
-
-        print(
-            "\n❌ Erro ao buscar categorias:"
-        )
-
-        print(erro)
-
+        print("Erro ao buscar categorias:", erro)
         return []
 
 
-# =========================================================
-# ESCOLHER CATEGORIA
-# =========================================================
-
 def escolher_categoria(tipo):
-
     categorias = buscar_categorias(tipo)
 
     if not categorias:
-
-        print(
-            "\n❌ Nenhuma categoria encontrada."
-        )
-
+        print("Nenhuma categoria encontrada.")
         return None
 
-    print(
-        "\nCategorias disponíveis:"
-    )
+    print("\n===== CATEGORIAS =====")
 
-    for numero, categoria in enumerate(
-        categorias,
-        start=1
-    ):
-
-        print(
-            f"{numero} - {categoria['nome']}"
-        )
+    for i, categoria in enumerate(categorias, 1):
+        print(f"{i} - {categoria['nome']}")
 
     while True:
-
         try:
+            escolha = int(input("Escolha uma categoria: "))
 
-            opcao = int(
-                input(
-                    "\nEscolha a categoria: "
-                )
-            )
+            if 1 <= escolha <= len(categorias):
+                return categorias[escolha - 1]["id"]
 
-            if 1 <= opcao <= len(categorias):
-
-                return categorias[
-                    opcao - 1
-                ]["id"]
-
-            print(
-                "\n❌ Categoria inválida."
-            )
+            print("Opção inválida.")
 
         except ValueError:
-
-            print(
-                "\n❌ Digite um número."
-            )
+            print("Digite um número.")
 
 
 # =========================================================
@@ -345,80 +261,31 @@ def escolher_categoria(tipo):
 # =========================================================
 
 def adicionar_receita():
+    print("\n===== NOVA RECEITA =====")
 
-    print("\n======================================")
-    print("            NOVA RECEITA")
-    print("======================================")
+    descricao = input("Descrição: ").strip()
+    valor = ler_numero("Valor: R$ ")
+    categoria_id = escolher_categoria("entrada")
+    data = ler_data()
 
-    user_id = pegar_usuario_id()
-
-    if not user_id:
-
-        print(
-            "\n❌ Você não está logado."
-        )
-
+    if not descricao or valor <= 0 or not categoria_id:
+        print("Dados inválidos.")
         return
-
-    descricao = input(
-        "Descrição: "
-    ).strip()
-
-    if not descricao:
-
-        print(
-            "\n❌ Informe a descrição."
-        )
-
-        return
-
-    valor = ler_numero(
-        "Valor: R$ "
-    )
-
-    categoria_id = escolher_categoria(
-        "entrada"
-    )
-
-    if categoria_id is None:
-
-        return
-
-    data = ler_data(
-        "Data (DD/MM/AAAA): "
-    )
 
     try:
-
-        supabase.table(
-            "transacoes"
-        ).insert({
-
-            "user_id": user_id,
-
+        supabase.table("transacoes").insert({
+            "user_id": pegar_usuario_id(),
             "descricao": descricao,
-
             "valor": valor,
-
             "tipo": "entrada",
-
             "categoria_id": categoria_id,
-
             "data_movimento": data
-
         }).execute()
 
-        print(
-            "\n✅ Receita cadastrada com sucesso!"
-        )
+        print("Receita adicionada com sucesso!")
 
     except Exception as erro:
-
-        print(
-            "\n❌ Erro ao cadastrar receita:"
-        )
-
-        print(erro)
+        print("Erro ao adicionar receita:", erro)
 
 
 # =========================================================
@@ -426,178 +293,164 @@ def adicionar_receita():
 # =========================================================
 
 def adicionar_despesa():
+    print("\n===== NOVA DESPESA =====")
 
-    print("\n======================================")
-    print("            NOVA DESPESA")
-    print("======================================")
+    descricao = input("Descrição: ").strip()
+    valor = ler_numero("Valor: R$ ")
+    categoria_id = escolher_categoria("saida")
+    data = ler_data()
 
-    user_id = pegar_usuario_id()
-
-    if not user_id:
-
-        print(
-            "\n❌ Você não está logado."
-        )
-
+    if not descricao or valor <= 0 or not categoria_id:
+        print("Dados inválidos.")
         return
-
-    descricao = input(
-        "Descrição: "
-    ).strip()
-
-    if not descricao:
-
-        print(
-            "\n❌ Informe a descrição."
-        )
-
-        return
-
-    valor = ler_numero(
-        "Valor: R$ "
-    )
-
-    categoria_id = escolher_categoria(
-        "saida"
-    )
-
-    if categoria_id is None:
-
-        return
-
-    data = ler_data(
-        "Data (DD/MM/AAAA): "
-    )
 
     try:
-
-        supabase.table(
-            "transacoes"
-        ).insert({
-
-            "user_id": user_id,
-
+        supabase.table("transacoes").insert({
+            "user_id": pegar_usuario_id(),
             "descricao": descricao,
-
             "valor": valor,
-
             "tipo": "saida",
-
             "categoria_id": categoria_id,
-
             "data_movimento": data
-
         }).execute()
 
-        print(
-            "\n✅ Despesa cadastrada com sucesso!"
-        )
+        print("Despesa adicionada com sucesso!")
 
     except Exception as erro:
+        print("Erro ao adicionar despesa:", erro)
 
-        print(
-            "\n❌ Erro ao cadastrar despesa:"
-        )
 
-        print(erro)
+# =========================================================
+# FILTRO DE PERÍODO
+# =========================================================
+
+def escolher_periodo():
+    hoje = datetime.date.today()
+
+    print("\n===== PERÍODO =====")
+    print("1 - Hoje")
+    print("2 - Ontem")
+    print("3 - Últimos 7 dias")
+    print("4 - Últimos 30 dias")
+    print("5 - Últimos 6 meses")
+    print("6 - Este mês")
+    print("7 - Mês passado")
+    print("8 - Personalizado")
+    print("9 - Todos")
+
+    while True:
+        opcao = input("Escolha: ")
+
+        if opcao == "1":
+            return hoje.isoformat(), hoje.isoformat()
+
+        elif opcao == "2":
+            data = hoje - datetime.timedelta(days=1)
+            return data.isoformat(), data.isoformat()
+
+        elif opcao == "3":
+            inicio = hoje - datetime.timedelta(days=6)
+            return inicio.isoformat(), hoje.isoformat()
+
+        elif opcao == "4":
+            inicio = hoje - datetime.timedelta(days=29)
+            return inicio.isoformat(), hoje.isoformat()
+
+        elif opcao == "5":
+            inicio = subtrair_meses(hoje, 6)
+            return inicio.isoformat(), hoje.isoformat()
+
+        elif opcao == "6":
+            inicio = hoje.replace(day=1)
+            return inicio.isoformat(), hoje.isoformat()
+
+        elif opcao == "7":
+            primeiro_deste_mes = hoje.replace(day=1)
+            ultimo_mes_passado = primeiro_deste_mes - datetime.timedelta(days=1)
+
+            inicio = ultimo_mes_passado.replace(day=1)
+            fim = ultimo_mes_passado
+
+            return inicio.isoformat(), fim.isoformat()
+
+        elif opcao == "8":
+            print("\nData inicial:")
+            inicio = ler_data()
+
+            print("Data final:")
+            fim = ler_data()
+
+            return inicio, fim
+
+        elif opcao == "9":
+            return None, None
+
+        else:
+            print("Opção inválida.")
+
+
+# =========================================================
+# FILTRO DE TIPO
+# =========================================================
+
+def escolher_tipo_filtro():
+    print("\n===== TIPO =====")
+    print("1 - Todas")
+    print("2 - Receitas")
+    print("3 - Despesas")
+
+    while True:
+        opcao = input("Escolha: ")
+
+        if opcao == "1":
+            return None
+
+        elif opcao == "2":
+            return "entrada"
+
+        elif opcao == "3":
+            return "saida"
+
+        else:
+            print("Opção inválida.")
 
 
 # =========================================================
 # BUSCAR TRANSAÇÕES DO USUÁRIO
 # =========================================================
 
-def buscar_transacoes():
-
-    user_id = pegar_usuario_id()
-
-    if not user_id:
-
-        return []
+def buscar_transacoes_filtradas():
+    inicio, fim = escolher_periodo()
+    tipo = escolher_tipo_filtro()
 
     try:
-
-        resultado = (
+        consulta = (
             supabase
             .table("transacoes")
-            .select(
-                """
-                id,
-                descricao,
-                valor,
-                tipo,
-                data_movimento,
-                categoria_id,
-                categorias (
-                    nome
-                )
-                """
-            )
-            .eq(
-                "user_id",
-                user_id
-            )
-            .order(
-                "data_movimento",
-                desc=True
-            )
+            .select("id, descricao, valor, tipo, data_movimento, categoria_id, categorias(nome)")
+            .eq("user_id", pegar_usuario_id())
+        )
+
+        if inicio:
+            consulta = consulta.gte("data_movimento", inicio)
+
+        if fim:
+            consulta = consulta.lte("data_movimento", fim)
+
+        if tipo:
+            consulta = consulta.eq("tipo", tipo)
+
+        resposta = (
+            consulta
+            .order("data_movimento", desc=True)
             .execute()
         )
 
-        return resultado.data
+        return resposta.data or []
 
     except Exception as erro:
-
-        print(
-            "\n❌ Erro ao buscar transações:"
-        )
-
-        print(erro)
-
+        print("Erro ao buscar transações:", erro)
         return []
-
-
-# =========================================================
-# CALCULAR SALDO
-# =========================================================
-
-def calcular_saldo():
-
-    transacoes = buscar_transacoes()
-
-    saldo = 0.0
-
-    for transacao in transacoes:
-
-        valor = float(
-            transacao["valor"]
-        )
-
-        if transacao["tipo"] == "entrada":
-
-            saldo += valor
-
-        elif transacao["tipo"] == "saida":
-
-            saldo -= valor
-
-    return saldo
-
-
-# =========================================================
-# VER SALDO
-# =========================================================
-
-def ver_saldo():
-
-    saldo = calcular_saldo()
-
-    print("\n======================================")
-    print("              SALDO ATUAL")
-    print("======================================")
-
-    print(
-        f"\n💰 {formatar_dinheiro(saldo)}"
-    )
 
 
 # =========================================================
@@ -605,67 +458,83 @@ def ver_saldo():
 # =========================================================
 
 def ver_historico():
+    print("\n===== HISTÓRICO =====")
 
-    transacoes = buscar_transacoes()
-
-    print("\n======================================")
-    print("        HISTÓRICO FINANCEIRO")
-    print("======================================")
+    transacoes = buscar_transacoes_filtradas()
 
     if not transacoes:
-
-        print(
-            "\nNenhuma transação cadastrada."
-        )
-
+        print("Nenhuma transação encontrada.")
         return
 
-    for item in transacoes:
+    for i, transacao in enumerate(transacoes, 1):
 
-        categoria = "Sem categoria"
+        tipo = (
+            "RECEITA"
+            if transacao["tipo"] == "entrada"
+            else "DESPESA"
+        )
 
-        if item.get("categorias"):
+        categoria = transacao.get("categorias")
 
-            categoria = item[
-                "categorias"
-            ]["nome"]
-
-        if item["tipo"] == "entrada":
-
-            simbolo = "+"
-
+        if categoria:
+            nome_categoria = categoria["nome"]
         else:
+            nome_categoria = "Sem categoria"
 
-            simbolo = "-"
+        data = datetime.datetime.fromisoformat(
+            transacao["data_movimento"]
+        ).strftime("%d/%m/%Y")
 
-        valor = float(
-            item["valor"]
+        print("\n------------------------------")
+        print(f"{i} - {tipo}")
+        print(f"Descrição: {transacao['descricao']}")
+        print(f"Categoria: {nome_categoria}")
+        print(f"Valor: {formatar_dinheiro(transacao['valor'])}")
+        print(f"Data: {data}")
+
+    print("------------------------------")
+
+
+# =========================================================
+# CALCULAR SALDO
+# =========================================================
+
+def calcular_saldo():
+    try:
+        resposta = (
+            supabase
+            .table("transacoes")
+            .select("valor, tipo")
+            .eq("user_id", pegar_usuario_id())
+            .execute()
         )
 
-        print(
-            "\n--------------------------------------"
-        )
+        saldo = 0
 
-        print(
-            f"Data:       {item['data_movimento']}"
-        )
+        for transacao in resposta.data or []:
 
-        print(
-            f"Tipo:       {item['tipo']}"
-        )
+            if transacao["tipo"] == "entrada":
+                saldo += float(transacao["valor"])
 
-        print(
-            f"Categoria:  {categoria}"
-        )
+            else:
+                saldo -= float(transacao["valor"])
 
-        print(
-            f"Valor:      {simbolo} "
-            f"{formatar_dinheiro(valor)}"
-        )
+        return saldo
 
-        print(
-            f"Descrição:  {item['descricao']}"
-        )
+    except Exception as erro:
+        print("Erro ao calcular saldo:", erro)
+        return 0
+
+
+# =========================================================
+# VER SALDO
+# =========================================================
+
+def ver_saldo():
+    saldo = calcular_saldo()
+
+    print("\n===== SALDO =====")
+    print("Saldo atual:", formatar_dinheiro(saldo))
 
 
 # =========================================================
@@ -673,82 +542,39 @@ def ver_historico():
 # =========================================================
 
 def analisar_financas():
-
-    transacoes = buscar_transacoes()
-
-    if not transacoes:
-
-        print(
-            "\n❌ Nenhuma transação cadastrada."
+    try:
+        resposta = (
+            supabase
+            .table("transacoes")
+            .select("valor, tipo")
+            .eq("user_id", pegar_usuario_id())
+            .execute()
         )
 
-        return
+        receitas = 0
+        despesas = 0
 
-    entradas = 0.0
+        for transacao in resposta.data or []:
 
-    saidas = 0.0
+            if transacao["tipo"] == "entrada":
+                receitas += float(transacao["valor"])
 
-    for item in transacoes:
+            else:
+                despesas += float(transacao["valor"])
 
-        valor = float(
-            item["valor"]
-        )
+        saldo = receitas - despesas
 
-        if item["tipo"] == "entrada":
+        print("\n===== ANÁLISE FINANCEIRA =====")
+        print("Total de receitas:", formatar_dinheiro(receitas))
+        print("Total de despesas:", formatar_dinheiro(despesas))
+        print("Saldo:", formatar_dinheiro(saldo))
 
-            entradas += valor
+        if receitas > 0:
+            percentual = (despesas / receitas) * 100
+            print(f"Percentual gasto: {percentual:.2f}%")
 
-        elif item["tipo"] == "saida":
-
-            saidas += valor
-
-    saldo = entradas - saidas
-
-    print("\n======================================")
-    print("          ANÁLISE FINANCEIRA")
-    print("======================================")
-
-    print(
-        f"\nEntradas: {formatar_dinheiro(entradas)}"
-    )
-
-    print(
-        f"Saídas:   {formatar_dinheiro(saidas)}"
-    )
-
-    print(
-        f"Saldo:    {formatar_dinheiro(saldo)}"
-    )
-
-    if entradas > 0:
-
-        percentual = (
-            saidas / entradas
-        ) * 100
-
-        print(
-            f"\nVocê utilizou "
-            f"{percentual:.2f}% "
-            f"das suas entradas."
-        )
-
-    if saldo > 0:
-
-        print(
-            "\n✅ Situação financeira positiva."
-        )
-
-    elif saldo == 0:
-
-        print(
-            "\n⚠️ Entradas e saídas estão equilibradas."
-        )
-
-    else:
-
-        print(
-            "\n❌ Situação financeira negativa."
-        )
+    except Exception as erro:
+        print("Erro ao analisar finanças:", erro)
 
 
 # =========================================================
@@ -756,349 +582,525 @@ def analisar_financas():
 # =========================================================
 
 def excluir_transacao():
-
-    transacoes = buscar_transacoes()
-
-    if not transacoes:
-
-        print(
-            "\n❌ Nenhuma transação cadastrada."
-        )
-
-        return
-
-    print("\n======================================")
-    print("          EXCLUIR TRANSAÇÃO")
-    print("======================================")
-
-    for numero, item in enumerate(
-        transacoes,
-        start=1
-    ):
-
-        print(
-            f"{numero} - "
-            f"{item['data_movimento']} | "
-            f"{item['descricao']} | "
-            f"{formatar_dinheiro(float(item['valor']))}"
-        )
-
-    print(
-        "0 - Cancelar"
-    )
+    print("\n===== EXCLUIR TRANSAÇÃO =====")
 
     try:
-
-        opcao = int(
-            input(
-                "\nEscolha: "
-            )
-        )
-
-        if opcao == 0:
-
-            return
-
-        if opcao < 1 or opcao > len(transacoes):
-
-            print(
-                "\n❌ Opção inválida."
-            )
-
-            return
-
-        transacao = transacoes[
-            opcao - 1
-        ]
-
-        confirmar = input(
-            "\nConfirma a exclusão? (S/N): "
-        ).strip().upper()
-
-        if confirmar != "S":
-
-            print(
-                "\n❌ Operação cancelada."
-            )
-
-            return
-
-        user_id = pegar_usuario_id()
-
-        (
+        resposta = (
             supabase
             .table("transacoes")
-            .delete()
-            .eq(
-                "id",
-                transacao["id"]
-            )
-            .eq(
-                "user_id",
-                user_id
-            )
+            .select("id, descricao, valor, tipo, data_movimento, categorias(nome)")
+            .eq("user_id", pegar_usuario_id())
+            .order("data_movimento", desc=True)
             .execute()
         )
 
-        print(
-            "\n✅ Transação excluída."
+        transacoes = resposta.data or []
+
+        if not transacoes:
+            print("Você não possui transações.")
+            return
+
+        for i, transacao in enumerate(transacoes, 1):
+
+            tipo = (
+                "RECEITA"
+                if transacao["tipo"] == "entrada"
+                else "DESPESA"
+            )
+
+            print(
+                f"{i} - [{tipo}] "
+                f"{transacao['descricao']} - "
+                f"{formatar_dinheiro(transacao['valor'])}"
+            )
+
+        while True:
+            try:
+                escolha = int(input("\nEscolha a transação: "))
+
+                if 1 <= escolha <= len(transacoes):
+                    break
+
+                print("Opção inválida.")
+
+            except ValueError:
+                print("Digite um número.")
+
+        transacao = transacoes[escolha - 1]
+
+        tipo = (
+            "RECEITA"
+            if transacao["tipo"] == "entrada"
+            else "DESPESA"
         )
 
-    except ValueError:
+        print("\n===== CONFIRMAÇÃO =====")
+        print("Tipo:", tipo)
+        print("Descrição:", transacao["descricao"])
+        print("Valor:", formatar_dinheiro(transacao["valor"]))
 
-        print(
-            "\n❌ Digite um número válido."
-        )
+        confirmar = input(
+            f"\nTem certeza que deseja excluir esta {tipo.lower()}? (s/n): "
+        ).lower()
+
+        if confirmar != "s":
+            print("Operação cancelada.")
+            return
+
+        supabase.table("transacoes") \
+            .delete() \
+            .eq("id", transacao["id"]) \
+            .eq("user_id", pegar_usuario_id()) \
+            .execute()
+
+        print("Transação excluída com sucesso.")
 
     except Exception as erro:
-
-        print(
-            "\n❌ Erro ao excluir:"
-        )
-
-        print(erro)
+        print("Erro ao excluir:", erro)
 
 
 # =========================================================
-# VER PERFIL
+# PERFIL
 # =========================================================
 
 def ver_perfil():
-
-    user_id = pegar_usuario_id()
-
-    if not user_id:
-
-        print(
-            "\n❌ Usuário não está logado."
-        )
-
-        return
-
     try:
-
-        resultado = (
+        resposta = (
             supabase
             .table("perfis")
-            .select("*")
-            .eq(
-                "id",
-                user_id
-            )
+            .select("nome, email, role")
+            .eq("id", pegar_usuario_id())
+            .single()
             .execute()
         )
 
-        if not resultado.data:
+        perfil = resposta.data
 
-            print(
-                "\n❌ Perfil não encontrado."
-            )
-
-            return
-
-        perfil = resultado.data[0]
-
-        print("\n======================================")
-        print("                 PERFIL")
-        print("======================================")
-
-        print(
-            f"\nNome: "
-            f"{perfil['nome']}"
-        )
-
-        print(
-            f"E-mail: "
-            f"{perfil['email']}"
-        )
-
-        print(
-            f"Data de cadastro: "
-            f"{perfil['data_cadastro']}"
-        )
+        print("\n===== MEU PERFIL =====")
+        print("Nome:", perfil["nome"])
+        print("E-mail:", perfil["email"])
+        print("Tipo:", perfil["role"])
 
     except Exception as erro:
+        print("Erro ao carregar perfil:", erro)
 
-        print(
-            "\n❌ Erro ao buscar perfil:"
+
+# =========================================================
+# ADMIN - VER USUÁRIOS
+# =========================================================
+
+def admin_ver_usuarios():
+    print("\n===== USUÁRIOS CADASTRADOS =====")
+
+    try:
+        resposta = (
+            supabase
+            .table("perfis")
+            .select("id, nome, email, role")
+            .order("nome")
+            .execute()
         )
 
-        print(erro)
+        usuarios = resposta.data or []
+
+        if not usuarios:
+            print("Nenhum usuário cadastrado.")
+            return
+
+        for i, usuario in enumerate(usuarios, 1):
+
+            quantidade = (
+                supabase
+                .table("transacoes")
+                .select("id", count="exact")
+                .eq("user_id", usuario["id"])
+                .execute()
+            )
+
+            total_transacoes = quantidade.count or 0
+
+            print("\n------------------------------")
+            print(f"{i} - {usuario['nome']}")
+            print(f"E-mail: {usuario['email']}")
+            print(f"Perfil: {usuario['role']}")
+            print(f"Transações: {total_transacoes}")
+
+    except Exception as erro:
+        print("Erro ao buscar usuários:", erro)
 
 
 # =========================================================
-# LER NÚMERO
+# ADMIN - GERENCIAR USUÁRIOS
 # =========================================================
 
-def ler_numero(mensagem):
+def admin_gerenciar_usuarios():
+    print("\n===== GERENCIAR USUÁRIOS =====")
 
-    while True:
+    try:
+        resposta = (
+            supabase
+            .table("perfis")
+            .select("id, nome, email, role")
+            .order("nome")
+            .execute()
+        )
 
-        try:
+        usuarios = resposta.data or []
 
-            valor = input(
-                mensagem
-            ).strip()
+        if not usuarios:
+            print("Nenhum usuário encontrado.")
+            return
 
-            valor = valor.replace(
-                ",",
-                "."
-            )
-
-            numero = float(
-                valor
-            )
-
-            if numero <= 0:
-
-                print(
-                    "❌ Digite um valor maior que zero."
-                )
-
-                continue
-
-            return numero
-
-        except ValueError:
-
+        for i, usuario in enumerate(usuarios, 1):
             print(
-                "❌ Digite um valor válido."
+                f"{i} - {usuario['nome']} | "
+                f"{usuario['email']} | "
+                f"{usuario['role']}"
             )
 
-
-# =========================================================
-# LER DATA
-# =========================================================
-
-def ler_data(mensagem):
-
-    while True:
-
-        valor = input(
-            mensagem
-        ).strip()
-
-        formatos = [
-            "%d/%m/%Y",
-            "%d-%m-%Y",
-            "%d%m%Y"
-        ]
-
-        for formato in formatos:
-
+        while True:
             try:
+                escolha = int(input("\nEscolha o usuário: "))
 
-                data = datetime.datetime.strptime(
-                    valor,
-                    formato
-                )
+                if 1 <= escolha <= len(usuarios):
+                    break
 
-                return data.strftime(
-                    "%Y-%m-%d"
-                )
+                print("Opção inválida.")
 
             except ValueError:
+                print("Digite um número.")
 
-                pass
+        usuario = usuarios[escolha - 1]
 
-        print(
-            "❌ Data inválida."
-        )
+        # Não permite alterar o próprio perfil
+        if usuario["id"] == pegar_usuario_id():
+            print("\nVocê não pode alterar seu próprio nível de acesso.")
+            return
+
+        print("\nUsuário selecionado:")
+        print("Nome:", usuario["nome"])
+        print("E-mail:", usuario["email"])
+        print("Perfil atual:", usuario["role"])
+
+        if usuario["role"] == "user":
+            print("\n1 - Promover a administrador")
+            print("0 - Cancelar")
+
+            opcao = input("Escolha: ")
+
+            if opcao == "1":
+                confirmar = input(
+                    f"Promover {usuario['nome']} a administrador? (s/n): "
+                ).lower()
+
+                if confirmar == "s":
+
+                    supabase.table("perfis") \
+                        .update({"role": "admin"}) \
+                        .eq("id", usuario["id"]) \
+                        .execute()
+
+                    print("Usuário promovido a administrador.")
+
+        else:
+            print("\n1 - Remover administrador")
+            print("0 - Cancelar")
+
+            opcao = input("Escolha: ")
+
+            if opcao == "1":
+                confirmar = input(
+                    f"Remover o cargo de administrador de {usuario['nome']}? (s/n): "
+                ).lower()
+
+                if confirmar == "s":
+
+                    supabase.table("perfis") \
+                        .update({"role": "user"}) \
+                        .eq("id", usuario["id"]) \
+                        .execute()
+
+                    print("Administrador removido com sucesso.")
+
+    except Exception as erro:
+        print("Erro ao gerenciar usuário:", erro)
 
 
 # =========================================================
-# MENU DO USUÁRIO
+# ADMIN - VER TRANSAÇÕES GERAIS
+# =========================================================
+
+def admin_ver_transacoes():
+    print("\n===== TRANSAÇÕES DO SISTEMA =====")
+
+    try:
+        resposta = (
+            supabase
+            .table("transacoes")
+            .select(
+                "id, user_id, descricao, valor, tipo, "
+                "data_movimento, categorias(nome)"
+            )
+            .order("data_movimento", desc=True)
+            .execute()
+        )
+
+        transacoes = resposta.data or []
+
+        if not transacoes:
+            print("Nenhuma transação encontrada.")
+            return
+
+        for transacao in transacoes:
+
+            tipo = (
+                "RECEITA"
+                if transacao["tipo"] == "entrada"
+                else "DESPESA"
+            )
+
+            data = datetime.datetime.fromisoformat(
+                transacao["data_movimento"]
+            ).strftime("%d/%m/%Y")
+
+            categoria = transacao.get("categorias")
+
+            nome_categoria = (
+                categoria["nome"]
+                if categoria
+                else "Sem categoria"
+            )
+
+            perfil = (
+                supabase
+                .table("perfis")
+                .select("nome, email")
+                .eq("id", transacao["user_id"])
+                .single()
+                .execute()
+            )
+
+            usuario = perfil.data
+
+            print("\n------------------------------")
+            print("Usuário:", usuario["nome"])
+            print("E-mail:", usuario["email"])
+            print("Tipo:", tipo)
+            print("Descrição:", transacao["descricao"])
+            print("Categoria:", nome_categoria)
+            print("Valor:", formatar_dinheiro(transacao["valor"]))
+            print("Data:", data)
+
+    except Exception as erro:
+        print("Erro ao buscar transações:", erro)
+
+
+# =========================================================
+# ADMIN - ANÁLISE GERAL
+# =========================================================
+
+def admin_analise():
+    print("\n===== VISÃO GERAL DO SISTEMA =====")
+
+    try:
+        usuarios = (
+            supabase
+            .table("perfis")
+            .select("id", count="exact")
+            .execute()
+        )
+
+        transacoes = (
+            supabase
+            .table("transacoes")
+            .select("id, valor, tipo")
+            .execute()
+        )
+
+        total_usuarios = usuarios.count or 0
+        lista = transacoes.data or []
+
+        total_transacoes = len(lista)
+        receitas = 0
+        despesas = 0
+
+        for transacao in lista:
+
+            if transacao["tipo"] == "entrada":
+                receitas += float(transacao["valor"])
+
+            else:
+                despesas += float(transacao["valor"])
+
+        saldo_geral = receitas - despesas
+
+        print("\nTotal de usuários:", total_usuarios)
+        print("Total de transações:", total_transacoes)
+        print("Total de receitas:", formatar_dinheiro(receitas))
+        print("Total de despesas:", formatar_dinheiro(despesas))
+        print("Saldo geral:", formatar_dinheiro(saldo_geral))
+
+    except Exception as erro:
+        print("Erro na análise:", erro)
+
+
+# =========================================================
+# ADMIN - USUÁRIOS MAIS ATIVOS
+# =========================================================
+
+def admin_usuarios_mais_ativos():
+    print("\n===== USUÁRIOS MAIS ATIVOS =====")
+
+    try:
+        resposta = (
+            supabase
+            .table("perfis")
+            .select("id, nome, email, role")
+            .order("nome")
+            .execute()
+        )
+
+        usuarios = resposta.data or []
+
+        ranking = []
+
+        for usuario in usuarios:
+
+            transacoes = (
+                supabase
+                .table("transacoes")
+                .select("id", count="exact")
+                .eq("user_id", usuario["id"])
+                .execute()
+            )
+
+            quantidade = transacoes.count or 0
+
+            ranking.append({
+                "nome": usuario["nome"],
+                "email": usuario["email"],
+                "role": usuario["role"],
+                "quantidade": quantidade
+            })
+
+        ranking.sort(
+            key=lambda usuario: usuario["quantidade"],
+            reverse=True
+        )
+
+        if not ranking:
+            print("Nenhum usuário encontrado.")
+            return
+
+        for i, usuario in enumerate(ranking, 1):
+
+            print(
+                f"{i}º - {usuario['nome']} | "
+                f"{usuario['quantidade']} transações | "
+                f"{usuario['role']}"
+            )
+
+    except Exception as erro:
+        print("Erro ao gerar ranking:", erro)
+
+
+# =========================================================
+# MENU ADMIN
+# =========================================================
+
+def menu_admin():
+    while True:
+
+        print("\n================================")
+        print("       PAINEL ADMINISTRADOR")
+        print("================================")
+        print("1 - Ver usuários cadastrados")
+        print("2 - Gerenciar usuários")
+        print("3 - Ver transações do sistema")
+        print("4 - Visão geral do sistema")
+        print("5 - Usuários mais ativos")
+        print("0 - Voltar")
+
+        opcao = input("Escolha: ")
+
+        if opcao == "1":
+            admin_ver_usuarios()
+
+        elif opcao == "2":
+            admin_gerenciar_usuarios()
+
+        elif opcao == "3":
+            admin_ver_transacoes()
+
+        elif opcao == "4":
+            admin_analise()
+
+        elif opcao == "5":
+            admin_usuarios_mais_ativos()
+
+        elif opcao == "0":
+            break
+
+        else:
+            print("Opção inválida.")
+
+
+# =========================================================
+# MENU USUÁRIO
 # =========================================================
 
 def menu_usuario():
 
-    while True:
+    while usuario_logado:
 
-        print("\n======================================")
-        print("        CONTROLE FINANCEIRO")
-        print("======================================")
+        print("\n================================")
+        print("       SISTEMA FINANCEIRO")
+        print("================================")
+        print("1 - Adicionar receita")
+        print("2 - Adicionar despesa")
+        print("3 - Ver saldo")
+        print("4 - Ver histórico")
+        print("5 - Analisar finanças")
+        print("6 - Excluir transação")
+        print("7 - Ver perfil")
 
-        print(
-            f"👤 Usuário: {usuario_logado.email}"
-        )
+        if usuario_eh_admin():
+            print("8 - Painel administrador")
 
-        print("--------------------------------------")
+        print("9 - Sair")
 
-        print(
-            "1 - Adicionar Receita"
-        )
-
-        print(
-            "2 - Adicionar Despesa"
-        )
-
-        print(
-            "3 - Ver Saldo"
-        )
-
-        print(
-            "4 - Ver Histórico"
-        )
-
-        print(
-            "5 - Analisar Finanças"
-        )
-
-        print(
-            "6 - Excluir Transação"
-        )
-
-        print(
-            "7 - Ver Perfil"
-        )
-
-        print(
-            "8 - Sair da Conta"
-        )
-
-        opcao = input(
-            "\nEscolha uma opção: "
-        ).strip()
+        opcao = input("Escolha: ")
 
         if opcao == "1":
-
             adicionar_receita()
 
         elif opcao == "2":
-
             adicionar_despesa()
 
         elif opcao == "3":
-
             ver_saldo()
 
         elif opcao == "4":
-
             ver_historico()
 
         elif opcao == "5":
-
             analisar_financas()
 
         elif opcao == "6":
-
             excluir_transacao()
 
         elif opcao == "7":
-
             ver_perfil()
 
-        elif opcao == "8":
+        elif opcao == "8" and usuario_eh_admin():
+            menu_admin()
 
+        elif opcao == "9":
             fazer_logout()
-
             break
 
         else:
-
-            print(
-                "\n❌ Opção inválida."
-            )
+            print("Opção inválida.")
 
 
 # =========================================================
@@ -1109,55 +1111,39 @@ def menu_principal():
 
     while True:
 
-        print("\n======================================")
-        print("          SISTEMA FINANCEIRO")
-        print("======================================")
+        print("\n================================")
+        print("       SISTEMA FINANCEIRO")
+        print("================================")
+        print("1 - Cadastrar")
+        print("2 - Entrar")
+        print("3 - Recuperar senha")
+        print("0 - Sair")
 
-        print(
-            "1 - Cadastrar Usuário"
-        )
-
-        print(
-            "2 - Entrar"
-        )
-
-        print(
-            "0 - Sair"
-        )
-
-        opcao = input(
-            "\nEscolha uma opção: "
-        ).strip()
+        opcao = input("Escolha: ")
 
         if opcao == "1":
-
             cadastrar_usuario()
 
         elif opcao == "2":
+            fazer_login()
 
-            if fazer_login():
-
+            if usuario_logado:
                 menu_usuario()
 
+        elif opcao == "3":
+            recuperar_senha()
+
         elif opcao == "0":
-
-            print(
-                "\nPrograma encerrado."
-            )
-
+            print("Programa encerrado.")
             break
 
         else:
-
-            print(
-                "\n❌ Opção inválida."
-            )
+            print("Opção inválida.")
 
 
 # =========================================================
-# INICIAR PROGRAMA
+# INICIAR SISTEMA
 # =========================================================
 
 if __name__ == "__main__":
-
     menu_principal()
