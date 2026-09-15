@@ -542,40 +542,44 @@ def ver_saldo():
 # =========================================================
 
 def analisar_financas():
-    try:
-        resposta = (
-            supabase
-            .table("transacoes")
-            .select("valor, tipo")
-            .eq("user_id", pegar_usuario_id())
-            .execute()
-        )
+    transacoes = buscar_transacoes()
 
-        receitas = 0
-        despesas = 0
+    receitas = sum(
+        float(t["valor"])
+        for t in transacoes
+        if t["tipo"] == "entrada"
+    )
 
-        for transacao in resposta.data or []:
+    despesas = sum(
+        float(t["valor"])
+        for t in transacoes
+        if t["tipo"] == "saida"
+    )
 
-            if transacao["tipo"] == "entrada":
-                receitas += float(transacao["valor"])
+    saldo = receitas - despesas
 
-            else:
-                despesas += float(transacao["valor"])
+    if receitas > 0:
+        percentual_gasto = (despesas / receitas) * 100
+    else:
+        percentual_gasto = 0
 
-        saldo = receitas - despesas
+    print("\n===== ANÁLISE FINANCEIRA =====")
+    print(f"Total de receitas: {formatar_dinheiro(receitas)}")
+    print(f"Total de despesas: {formatar_dinheiro(despesas)}")
+    print(f"Saldo: {formatar_dinheiro(saldo)}")
+    print(f"Percentual gasto: {percentual_gasto:.2f}%")
 
-        print("\n===== ANÁLISE FINANCEIRA =====")
-        print("Total de receitas:", formatar_dinheiro(receitas))
-        print("Total de despesas:", formatar_dinheiro(despesas))
-        print("Saldo:", formatar_dinheiro(saldo))
+    if despesas >= receitas:
+        print("🚨 ALERTA: seus gastos já atingiram ou ultrapassaram o total recebido.")
+        print("Sua conta está zerada ou negativa.")
 
-        if receitas > 0:
-            percentual = (despesas / receitas) * 100
-            print(f"Percentual gasto: {percentual:.2f}%")
+    elif percentual_gasto > 70:
+        print("⚠️ ATENÇÃO: você já gastou mais de 70% do que recebeu.")
+        print("Sua conta está ficando próxima de zerar.")
 
-    except Exception as erro:
-        print("Erro ao analisar finanças:", erro)
-
+    else:
+        print("✅ Situação financeira normal.")
+        print("Seus gastos ainda estão abaixo de 70% do que você recebeu.")
 
 # =========================================================
 # EXCLUIR TRANSAÇÃO
