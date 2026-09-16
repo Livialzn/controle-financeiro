@@ -426,7 +426,7 @@ def escolher_tipo_filtro():
 # BUSCAR TRANSAÇÕES DO USUÁRIO
 # =========================================================
 
-def buscar_transacoes_filtradas():
+def buscar_transacoes():
     inicio, fim = escolher_periodo()
     tipo = escolher_tipo_filtro()
 
