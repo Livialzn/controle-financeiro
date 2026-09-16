@@ -45,15 +45,22 @@ def ler_numero(mensagem):
 
 def ler_data():
     while True:
-        data = input("Data (DD/MM/AAAA): ")
+        data = input("Data (DD/MM/AAAA ou DDMMAAAA): ").strip()
 
-        try:
-            return datetime.datetime.strptime(
-                data, "%d/%m/%Y"
-            ).date().isoformat()
-        except ValueError:
-            print("Data inválida.")
+        formatos = [
+            "%d/%m/%Y",
+            "%d%m%Y"
+        ]
 
+        for formato in formatos:
+            try:
+                return datetime.datetime.strptime(
+                    data, formato
+                ).date().isoformat()
+            except ValueError:
+                pass
+
+        print("Data inválida.")
 
 def subtrair_meses(data, meses):
     """
