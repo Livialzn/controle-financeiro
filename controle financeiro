@@ -467,7 +467,7 @@ def buscar_transacoes():
 def ver_historico():
     print("\n===== HISTÓRICO =====")
 
-    transacoes = buscar_transacoes_filtradas()
+    transacoes = buscar_transacoes()
 
     if not transacoes:
         print("Nenhuma transação encontrada.")
