@@ -168,8 +168,8 @@ def recuperar_senha():
     try:
         supabase.auth.reset_password_for_email(email)
 
-        print("\nSe o e-mail estiver cadastrado,")
-        print("um link para redefinir a senha será enviado.")
+        print("\verifique o email,")
+        print("um link para redefinir a senha foi enviado!.")
 
     except Exception as erro:
         print("Erro ao solicitar recuperação:", erro)
