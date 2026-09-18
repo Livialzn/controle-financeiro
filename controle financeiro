@@ -151,7 +151,7 @@ def fazer_login():
 
         print("\n" + "=" * 45)
         print("LOGIN REALIZADO COM SUCESSO!")
-        print(f"BEM-VINDO, {nome.upper()}, À FÁBRICA DE BICO!")
+        print(f"BEM-VINDO(A), {nome.upper()}, À FÁBRICA DE BICO!")
         print("=" * 45)
 
     except Exception as erro:
@@ -299,6 +299,7 @@ def escolher_categoria(tipo):
 
 def adicionar_receita():
     print("\n===== NOVA RECEITA =====")
+
 
     descricao = input("Descrição: ").strip()
     valor = ler_numero("Valor: R$ ")
