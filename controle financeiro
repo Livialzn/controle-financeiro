@@ -129,6 +129,7 @@ def cadastrar_usuario():
 # LOGIN
 # =========================================================
 
+
 def fazer_login():
     global usuario_logado
 
@@ -145,12 +146,16 @@ def fazer_login():
 
         usuario_logado = resposta.user
 
-        print("\nLogin realizado com sucesso!")
-        print("Bem-vindo,", usuario_logado.email)
+        
+        nome = usuario_logado.user_metadata.get("nome", "USUÁRIO")
+
+        print("\n" + "=" * 45)
+        print("LOGIN REALIZADO COM SUCESSO!")
+        print(f"BEM-VINDO, {nome.upper()}, À FÁBRICA DE BICO!")
+        print("=" * 45)
 
     except Exception as erro:
-        print("Erro ao fazer login:", erro)
-
+        print("ERRO AO FAZER LOGIN:", erro)
 
 # =========================================================
 # RECUPERAÇÃO DE SENHA
@@ -168,7 +173,7 @@ def recuperar_senha():
     try:
         supabase.auth.reset_password_for_email(email)
 
-        print("\verifique o email,")
+        print("\nverifique o email,")
         print("um link para redefinir a senha foi enviado!.")
 
     except Exception as erro:
@@ -189,7 +194,7 @@ def fazer_logout():
 
     usuario_logado = None
 
-    print("\nLogout realizado.")
+    print("\nFALOU!FORTE ABRAÇO MALANDRAGEM.")
 
 
 # =========================================================
