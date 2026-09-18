@@ -198,6 +198,31 @@ def fazer_logout():
 
 
 # =========================================================
+# DESENVOLVEDORES
+# =========================================================
+
+def tela_desenvolvedores():
+    print("\n" + "=" * 45)
+    print("          FÁBRICA DE BICO")
+    print("=" * 45)
+
+    print("\nFORTE ABRAÇO, MALANDRAGEM! 😂")
+
+    print("\n" + "-" * 45)
+    print("          DESENVOLVEDORES")
+    print("-" * 45)
+
+    print("LÍVIA")
+    print("HENRIQUE")
+    print("PEDRO")
+    print("ENZO")
+
+    print("-" * 45)
+    print("Obrigado por utilizar a Fábrica de Bico!")
+    print("=" * 45)
+
+
+# =========================================================
 # VERIFICAR ADMIN
 # =========================================================
 
