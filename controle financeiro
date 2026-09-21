@@ -206,7 +206,7 @@ def tela_desenvolvedores():
     print("          sistema de controle financeiro")
     print("=" * 45)
 
-    print("\nFORTE ABRAÇO, MALANDRAGEM! ")
+   
 
     print("\n" + "-" * 45)
     print("          DESENVOLVEDORES")
@@ -214,8 +214,8 @@ def tela_desenvolvedores():
 
     print("LÍVIA")
     print("HENRIQUE")
-    print("PEDRO")
-    print("ENZO")
+    print("PEDRO LUCAS")
+    print("ENZO G. MONTEIRO")
 
     print("-" * 45)
     print("Obrigado por utilizar o sistema de controle financeiro!")
