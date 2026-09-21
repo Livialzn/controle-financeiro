@@ -206,7 +206,7 @@ def tela_desenvolvedores():
     print("          FÁBRICA DE BICO")
     print("=" * 45)
 
-    print("\nFORTE ABRAÇO, MALANDRAGEM! 😂")
+    print("\nFORTE ABRAÇO, MALANDRAGEM! ")
 
     print("\n" + "-" * 45)
     print("          DESENVOLVEDORES")
@@ -218,7 +218,7 @@ def tela_desenvolvedores():
     print("ENZO")
 
     print("-" * 45)
-    print("Obrigado por utilizar a Fábrica de Bico!")
+    print("Obrigado por utilizar o sistema de controle financeiro!")
     print("=" * 45)
 
 
@@ -1159,6 +1159,7 @@ def menu_principal():
         print("1 - Cadastrar")
         print("2 - Entrar")
         print("3 - Recuperar senha")
+        print("4 - desenvolvedores")
         print("0 - Sair")
 
         opcao = input("Escolha: ")
