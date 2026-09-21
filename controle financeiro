@@ -203,7 +203,7 @@ def fazer_logout():
 
 def tela_desenvolvedores():
     print("\n" + "=" * 45)
-    print("          FÁBRICA DE BICO")
+    print("          sistema de controle financeiro")
     print("=" * 45)
 
     print("\nFORTE ABRAÇO, MALANDRAGEM! ")
@@ -1175,6 +1175,8 @@ def menu_principal():
 
         elif opcao == "3":
             recuperar_senha()
+        elif   opcao == "4":
+          tela_desenvolvedores()
 
         elif opcao == "0":
             print("Programa encerrado.")
